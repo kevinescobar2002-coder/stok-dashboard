@@ -197,7 +197,7 @@ export default function App() {
   useEffect(() => {
     if (!sesion) return;
     traer();
-    const t = setInterval(() => traer(false), 20000);
+    const t = setInterval(() => traer(false), 60000);
     return () => clearInterval(t);
   }, [sesion, cfg.base, cfg.obraId, traer]);
 
