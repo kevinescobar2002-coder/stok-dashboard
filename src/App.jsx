@@ -1,10 +1,17 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { supabase } from "./supabase";
+import {
+  cargarObras, leerObraActiva, fijarObraActiva,
+  crearObra, unirseAObra, guardarObra, rotarCodigo, salirDeObra,
+} from "./obras";
 
 /* ============================================================
    STOK · SALA DE CONTROL — Bodega de obra
-   Cuentas en Supabase · inventario en Google Sheets vía n8n.
+   Cuentas y obras en Supabase · inventario en Google Sheets vía n8n.
    Tres agentes: captura, predicción y acción.
+
+   Cada obra es un espacio cerrado. Se entra con un código de
+   invitación y solo se ven los datos de la obra activa.
    ============================================================ */
 
 const F = {
@@ -23,22 +30,6 @@ const num = (v) => { const n = parseFloat(String(v ?? "").replace(",", ".")); re
 const clp = (n) => "$" + Math.round(num(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 const hora = (iso) => { try { return new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }); } catch { return "—"; } };
 const ahora = () => new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-
-/* La configuración vive en Supabase, ligada al usuario: te sigue entre dispositivos. */
-const CFG_VACIA = { base: "", obraId: "OBRA-001", linkPlanilla: "", linkCarpeta: "" };
-
-async function cargarCfg(userId) {
-  const { data, error } = await supabase.from("configuracion").select("*").eq("user_id", userId).maybeSingle();
-  if (error || !data) return CFG_VACIA;
-  return { base: data.base_n8n || "", obraId: data.obra_id || "OBRA-001",
-           linkPlanilla: data.link_planilla || "", linkCarpeta: data.link_carpeta || "" };
-}
-async function guardarCfg(userId, cfg) {
-  await supabase.from("configuracion").upsert({
-    user_id: userId, base_n8n: cfg.base, obra_id: cfg.obraId,
-    link_planilla: cfg.linkPlanilla, link_carpeta: cfg.linkCarpeta,
-  }, { onConflict: "user_id" });
-}
 
 function estadoDe(m) {
   const s = num(m.stock), mn = num(m.minimo);
@@ -130,9 +121,11 @@ const Boton = ({ children, onClick, tono = "borde", disabled, style, titulo }) =
 const Campo = ({ etiqueta, pista, ...props }) => (
   <label style={{ display: "block", marginBottom: 14 }}>
     <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 6 }}>{etiqueta}</div>
-    <input {...props} style={{ width: "100%", background: C.panel, border: `1px solid ${C.linea}`, color: C.navy,
+    <input {...props} style={{ width: "100%", background: props.disabled ? C.suave : C.panel, border: `1px solid ${C.linea}`,
+      color: props.disabled ? C.tenue : C.navy, cursor: props.disabled ? "not-allowed" : "text",
       padding: "10px 12px", ...F.ui, fontSize: 14, fontWeight: 450, outline: "none", boxSizing: "border-box" }}
-      onFocus={(e) => (e.target.style.borderColor = C.naranja)} onBlur={(e) => (e.target.style.borderColor = C.linea)} />
+      onFocus={(e) => { if (!props.disabled) e.target.style.borderColor = C.naranja; }}
+      onBlur={(e) => (e.target.style.borderColor = C.linea)} />
     {pista && <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 5, lineHeight: 1.5 }}>{pista}</div>}
   </label>
 );
@@ -141,14 +134,19 @@ const Campo = ({ etiqueta, pista, ...props }) => (
 export default function App() {
   const [cargando, setCargando] = useState(true);
   const [sesion, setSesion] = useState(null);
-  const [cfg, setCfg] = useState(CFG_VACIA);
+  const [obras, setObras] = useState(null);        // null = todavía no se sabe
+  const [obraId, setObraId] = useState(null);      // uuid de la obra activa
+  const [fallaObras, setFallaObras] = useState(null);
   const [datos, setDatos] = useState(null);
   const [conexion, setConexion] = useState({ tono: "muestra", txt: "MODO DEMOSTRACIÓN" });
   const [toasts, setToasts] = useState([]);
   const [vistas, setVistas] = useState([]); // alertas ya descartadas en pantalla
-  const listo = useRef(false);
-  const cfgRef = useRef(cfg);
-  useEffect(() => { cfgRef.current = cfg; }, [cfg]);
+
+  /* La obra activa manda: de ella salen la dirección de n8n y el obra_id
+     con que se piden los datos. Cambiar de obra cambia todo lo que se ve. */
+  const obra = useMemo(() => (obras || []).find((o) => o.id === obraId) || null, [obras, obraId]);
+  const obraRef = useRef(null);
+  useEffect(() => { obraRef.current = obra; }, [obra]);
 
   const aviso = useCallback((txt, tono = "ok") => {
     const id = Date.now() + Math.random();
@@ -156,60 +154,94 @@ export default function App() {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4200);
   }, []);
 
+  /* Trae las obras de la persona y decide cuál queda activa.
+     Si la consulta falla guardamos el error en vez de dejar la lista
+     vacía: mandar a crear obra a alguien que ya tiene una sería peor. */
+  const refrescarObras = useCallback(async (userId, preferida = null) => {
+    const { obras: lista, error } = await cargarObras(userId);
+    if (error) { setFallaObras(error); return null; }
+    setFallaObras(null);
+    setObras(lista);
+
+    let elegida = preferida;
+    if (!elegida) {
+      const { id } = await leerObraActiva(userId);
+      elegida = id;
+    }
+    if (!lista.some((o) => o.id === elegida)) elegida = lista[0]?.id || null;
+    setObraId(elegida);
+    return lista;
+  }, []);
+
   useEffect(() => {
+    const entrar = async (u) => {
+      setSesion({ id: u.id, email: u.email, nombre: u.user_metadata?.nombre || u.email });
+      await refrescarObras(u.id);
+    };
     (async () => {
       const { data } = await supabase.auth.getSession();
       const u = data.session?.user;
-      if (u) { setSesion({ id: u.id, email: u.email, nombre: u.user_metadata?.nombre || u.email }); setCfg(await cargarCfg(u.id)); }
+      if (u) await entrar(u);
       setCargando(false);
-      setTimeout(() => (listo.current = true), 300);
     })();
     const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
       const u = s?.user;
-      if (!u) { setSesion(null); setDatos(null); return; }
-      setSesion({ id: u.id, email: u.email, nombre: u.user_metadata?.nombre || u.email });
-      setCfg(await cargarCfg(u.id));
+      if (!u) { setSesion(null); setObras(null); setObraId(null); setDatos(null); return; }
+      await entrar(u);
     });
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [refrescarObras]);
 
-  useEffect(() => { if (listo.current && sesion?.id) guardarCfg(sesion.id, cfg); }, [cfg, sesion]);
+  const cambiarObra = useCallback(async (id) => {
+    if (!sesion || id === obraId) return;
+    setObraId(id);
+    setDatos(null);                 // nunca mostrar datos de la obra anterior
+    setVistas([]);
+    setConexion({ tono: "muestra", txt: "CAMBIANDO DE OBRA…" });
+    try { await fijarObraActiva(sesion.id, id); } catch { /* se reintenta al próximo cambio */ }
+  }, [sesion, obraId]);
 
   /* ---- el único origen de datos: la API de n8n ---- */
-  const url = (ruta) => cfgRef.current.base.replace(/\/+$/, "") + ruta;
+  const url = (ruta) => (obraRef.current?.base || "").replace(/\/+$/, "") + ruta;
 
   const traer = useCallback(async (avisar = false) => {
-    const c = cfgRef.current;
-    if (!c.base) { setDatos(MUESTRA); setConexion({ tono: "muestra", txt: "MODO DEMOSTRACIÓN" }); return; }
+    const o = obraRef.current;
+    if (!o) return;
+    if (!o.base) { setDatos(MUESTRA); setConexion({ tono: "muestra", txt: "MODO DEMOSTRACIÓN" }); return; }
+    const pedida = o.id;
     try {
-      const r = await fetch(url(`/webhook/stok/api/dashboard?obra_id=${encodeURIComponent(c.obraId)}`));
+      const r = await fetch(url(`/webhook/stok/api/dashboard?obra_id=${encodeURIComponent(o.obraId)}`));
       if (!r.ok) throw new Error(r.status);
       const d = await r.json();
+      /* Si el usuario cambió de obra mientras la respuesta viajaba,
+         se descarta: son datos de la obra equivocada. */
+      if (obraRef.current?.id !== pedida) return;
       setDatos(d);
       setConexion({ tono: "ok", txt: "EN LÍNEA · " + ahora() });
       if (avisar) aviso("Datos actualizados desde la planilla.");
     } catch {
+      if (obraRef.current?.id !== pedida) return;
       setConexion({ tono: "error", txt: "SIN CONEXIÓN CON N8N" });
       if (avisar) aviso("No se pudo leer la planilla. Revisa la dirección en Ajustes.", "error");
     }
   }, [aviso]);
 
   useEffect(() => {
-    if (!sesion) return;
+    if (!sesion || !obra) return;
     traer();
     const t = setInterval(() => traer(false), 60000);
     return () => clearInterval(t);
-  }, [sesion, cfg.base, cfg.obraId, traer]);
+  }, [sesion, obra, traer]);
 
   const llamarAgente = async (cual) => {
-    const c = cfgRef.current;
+    const o = obraRef.current;
     const nombre = cual === "prediccion" ? "predicción" : "acción";
-    if (!c.base) return aviso(`En modo demostración el agente de ${nombre} no se ejecuta.`, "error");
+    if (!o?.base) return aviso(`En modo demostración el agente de ${nombre} no se ejecuta.`, "error");
     aviso(`Agente de ${nombre} trabajando…`);
     try {
       const r = await fetch(url(`/webhook/stok/agente/${cual}`), {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ obra_id: c.obraId, disparador: "dashboard" }),
+        body: JSON.stringify({ obra_id: o.obraId, disparador: "dashboard" }),
       });
       if (!r.ok) throw new Error(r.status);
       aviso(cual === "prediccion" ? "Predicción recalculada contra la programación de obra." : "Revisión de compras lista. Si había alertas, el correo ya salió.");
@@ -218,33 +250,68 @@ export default function App() {
   };
 
   const guardarMinimo = async (material_id, campo, valor) => {
+    const previo = (datos?.materiales || []).find((x) => x.material_id === material_id);
     setDatos((d) => ({ ...d, materiales: d.materiales.map((m) => (m.material_id === material_id ? { ...m, [campo]: num(valor) } : m)) }));
-    const c = cfgRef.current;
-    if (!c.base) return;
-    const m = datos.materiales.find((x) => x.material_id === material_id);
+    const o = obraRef.current;
+    if (!o?.base || !previo) return;
     try {
-      await fetch(url("/webhook/stok/inventario"), {
+      const r = await fetch(url("/webhook/stok/inventario"), {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ obra_id: c.obraId, inventario: [{ ...m, [campo]: num(valor) }] }),
+        body: JSON.stringify({ obra_id: o.obraId, inventario: [{ ...previo, [campo]: num(valor) }] }),
       });
+      if (!r.ok) throw new Error(r.status);
       aviso("Guardado en la planilla.");
-    } catch { aviso("No se pudo guardar en la planilla.", "error"); }
+    } catch {
+      /* Volver al valor anterior: dejarlo en pantalla haría creer que se guardó. */
+      setDatos((d) => ({ ...d, materiales: d.materiales.map((m) => (m.material_id === material_id ? { ...m, [campo]: num(previo[campo]) } : m)) }));
+      aviso("No se pudo guardar en la planilla.", "error");
+    }
   };
 
   const resolverCompra = async (rec, estado) => {
     setDatos((d) => ({ ...d, recomendaciones: d.recomendaciones.map((r) => (r.rec_id === rec.rec_id ? { ...r, estado } : r)).filter((r) => r.estado !== "descartada") }));
     aviso(estado === "aprobada" ? `Compra aprobada: ${rec.cantidad_sugerida} ${rec.unidad} de ${rec.nombre}.` : `Recomendación descartada: ${rec.nombre}.`);
-    const c = cfgRef.current;
-    if (!c.base) return;
+    const o = obraRef.current;
+    if (!o?.base) return;
     try {
-      await fetch(url("/webhook/stok/recomendacion"), {
+      const r = await fetch(url("/webhook/stok/recomendacion"), {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rec_id: rec.rec_id, estado }),
+        body: JSON.stringify({ rec_id: rec.rec_id, estado, obra_id: o.obraId }),
       });
-    } catch { aviso("El estado no se guardó en la planilla.", "error"); }
+      if (!r.ok) throw new Error(r.status);
+    } catch { aviso("El estado no se guardó en la planilla. Se reintenta al actualizar.", "error"); }
   };
 
-  const salir = async () => { await supabase.auth.signOut(); setSesion(null); setDatos(null); };
+  /* Ajustes de la obra: los guarda un botón, no cada tecla. La configuración
+     es compartida por todo el equipo, así que no conviene ir escribiéndola sola. */
+  const guardarAjustes = async (borrador) => {
+    await guardarObra(borrador);
+    setObras((lista) => (lista || []).map((o) => (o.id === borrador.id ? { ...o, ...borrador } : o)));
+    aviso("Ajustes de la obra guardados.");
+  };
+
+  const nuevoCodigo = async () => {
+    const c = await rotarCodigo(obraRef.current.id);
+    setObras((lista) => (lista || []).map((o) => (o.id === obraRef.current.id ? { ...o, codigo: c } : o)));
+    aviso("Código nuevo generado. El anterior dejó de servir.");
+    return c;
+  };
+
+  const dejarObra = async () => {
+    const id = obraRef.current.id;
+    await salirDeObra(id, sesion.id);
+    setDatos(null);
+    const lista = (obras || []).filter((o) => o.id !== id);
+    setObras(lista);
+    setObraId(lista[0]?.id || null);
+    if (lista[0]) { try { await fijarObraActiva(sesion.id, lista[0].id); } catch { /* no crítico */ } }
+    aviso("Saliste de la obra.");
+  };
+
+  const salir = async () => {
+    await supabase.auth.signOut();
+    setSesion(null); setObras(null); setObraId(null); setDatos(null);
+  };
 
   if (cargando) return (
     <Base><div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
@@ -252,11 +319,33 @@ export default function App() {
     </div></Base>
   );
 
+  const contenido = () => {
+    if (!sesion) return <Acceso aviso={aviso} />;
+    if (fallaObras) return (
+      <Aviso titulo="No pudimos leer tus obras"
+        texto={`${fallaObras} Revisa tu conexión y vuelve a intentar; nada se ha perdido.`}
+        accion="Reintentar" onAccion={() => refrescarObras(sesion.id)} salir={salir} />
+    );
+    if (obras === null) return (
+      <div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
+        <div style={{ ...F.mono, fontSize: 11, letterSpacing: ".3em", color: C.tenue }}>BUSCANDO TUS OBRAS…</div>
+      </div>
+    );
+    if (obras.length === 0 || !obra) return (
+      <Bienvenida sesion={sesion} salir={salir} aviso={aviso}
+        alEntrar={(nueva) => refrescarObras(sesion.id, nueva.id)} />
+    );
+    return (
+      <Panel {...{ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso, traer,
+        llamarAgente, guardarMinimo, resolverCompra, vistas, setVistas,
+        guardarAjustes, nuevoCodigo, dejarObra,
+        alEntrarAObra: (nueva) => refrescarObras(sesion.id, nueva.id) }} />
+    );
+  };
+
   return (
     <Base>
-      {!sesion
-        ? <Acceso aviso={aviso} />
-        : <Panel {...{ sesion, salir, datos, cfg, setCfg, conexion, aviso, traer, llamarAgente, guardarMinimo, resolverCompra, vistas, setVistas }} />}
+      {contenido()}
       <div style={{ position: "fixed", right: 18, bottom: 18, display: "flex", flexDirection: "column", gap: 8, zIndex: 90 }}>
         {toasts.map((t) => (
           <div key={t.id} className="toast" style={{ ...F.mono, fontSize: 11, letterSpacing: ".05em", padding: "11px 15px",
@@ -291,22 +380,36 @@ const Base = ({ children }) => (
 /* ============================================================ ACCESO (Supabase) */
 function Acceso({ aviso }) {
   const [modo, setModo] = useState("entrar");
-  const [f, setF] = useState({ nombre: "", email: "", clave: "" });
+  const [f, setF] = useState({ nombre: "", email: "", clave: "", codigo: "" });
   const [ocupado, setOcupado] = useState(false);
 
   const enviar = async () => {
     const email = f.email.trim().toLowerCase();
     if (!email || !f.clave) return aviso("Escribe tu correo y tu clave.", "error");
     if (f.clave.length < 6) return aviso("La clave necesita al menos 6 caracteres.", "error");
+    if (modo === "crear" && !f.nombre.trim()) return aviso("Falta tu nombre.", "error");
     setOcupado(true);
     try {
       if (modo === "crear") {
-        if (!f.nombre.trim()) return aviso("Falta tu nombre.", "error");
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email, password: f.clave, options: { data: { nombre: f.nombre.trim() } },
         });
         if (error) throw error;
-        aviso("Cuenta creada. Revisa tu correo si te pedimos confirmarla.");
+
+        /* Con confirmación de correo activada no hay sesión todavía y el
+           código no se puede canjear aún: se pide de nuevo al entrar. */
+        if (f.codigo.trim() && data.session) {
+          try {
+            const o = await unirseAObra(f.codigo);
+            aviso(`Cuenta creada. Entraste a ${o.nombre}.`);
+          } catch (e) {
+            aviso(`Cuenta creada, pero el código falló: ${e.message}`, "error");
+          }
+        } else if (f.codigo.trim()) {
+          aviso("Cuenta creada. Confirma tu correo y vuelve a escribir el código al entrar.");
+        } else {
+          aviso("Cuenta creada. Revisa tu correo si te pedimos confirmarla.");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password: f.clave });
         if (error) throw error;
@@ -332,6 +435,12 @@ function Acceso({ aviso }) {
           {modo === "crear" && <Campo etiqueta="Nombre" value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} placeholder="Tu nombre" />}
           <Campo etiqueta="Correo" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="tu@correo.cl" />
           <Campo etiqueta="Clave" type="password" value={f.clave} onChange={(e) => setF({ ...f, clave: e.target.value })} placeholder="••••••••" onKeyDown={(e) => e.key === "Enter" && enviar()} />
+          {modo === "crear" && (
+            <Campo etiqueta="Código de la obra" value={f.codigo}
+              onChange={(e) => setF({ ...f, codigo: e.target.value.toUpperCase() })}
+              placeholder="STOK-A7K2M9" onKeyDown={(e) => e.key === "Enter" && enviar()}
+              pista="Te lo da el jefe de la obra. Si vas a crear una obra nueva, déjalo en blanco." />
+          )}
           <Boton tono="primario" onClick={enviar} disabled={ocupado} style={{ width: "100%", marginTop: 6, padding: "13px" }}>
             {ocupado ? "Verificando…" : modo === "crear" ? "Crear cuenta y entrar" : "Entrar"}
           </Boton>
@@ -350,8 +459,155 @@ function Acceso({ aviso }) {
   );
 }
 
+/* ============================================================ BIENVENIDA
+   Primera pantalla de quien todavía no pertenece a ninguna obra.
+   Dos caminos: entrar con el código que le pasaron, o abrir una obra
+   nueva (y quedar como su administrador). */
+function Bienvenida({ sesion, salir, aviso, alEntrar }) {
+  const [via, setVia] = useState("codigo");
+  const [codigo, setCodigo] = useState("");
+  const [nueva, setNueva] = useState({ nombre: "", obraId: "" });
+  const [ocupado, setOcupado] = useState(false);
+
+  const entrarConCodigo = async () => {
+    if (!codigo.trim()) return aviso("Escribe el código de la obra.", "error");
+    setOcupado(true);
+    try {
+      const o = await unirseAObra(codigo);
+      aviso(`Entraste a ${o.nombre}.`);
+      await alEntrar(o);
+    } catch (e) { aviso(e.message, "error"); }
+    finally { setOcupado(false); }
+  };
+
+  const abrirObra = async () => {
+    if (!nueva.nombre.trim()) return aviso("La obra necesita un nombre.", "error");
+    setOcupado(true);
+    try {
+      const o = await crearObra(nueva.nombre, nueva.obraId);
+      aviso(`Obra creada. El código para tu equipo es ${o.codigo}.`);
+      await alEntrar(o);
+    } catch (e) { aviso(e.message, "error"); }
+    finally { setOcupado(false); }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>
+      <div style={{ width: "100%", maxWidth: 460 }}>
+        <div style={{ background: C.panel, border: `1px solid ${C.linea}`, boxShadow: "0 18px 50px rgba(15,27,61,.08)", padding: "34px 32px 28px" }}>
+          <Marca tam={26} />
+          <div style={{ ...F.ui, fontSize: 15.5, fontWeight: 600, color: C.navy, margin: "20px 0 6px" }}>
+            Hola, {sesion.nombre}.
+          </div>
+          <div style={{ ...F.ui, fontSize: 13, color: C.tenue, lineHeight: 1.6, marginBottom: 22 }}>
+            Todavía no estás en ninguna obra. Cada obra tiene su propia bodega, y solo ves la tuya.
+          </div>
+
+          <div style={{ display: "flex", gap: 0, marginBottom: 20, border: `1px solid ${C.linea}` }}>
+            {[["codigo", "Tengo un código"], ["crear", "Crear obra nueva"]].map(([v, t]) => (
+              <button key={v} onClick={() => setVia(v)} style={{ ...F.mono, fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase",
+                flex: 1, padding: "10px 8px", cursor: "pointer", border: "none",
+                background: via === v ? C.navy : "transparent", color: via === v ? "#fff" : C.tenue }}>{t}</button>
+            ))}
+          </div>
+
+          {via === "codigo" ? (
+            <>
+              <Campo etiqueta="Código de la obra" value={codigo} onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                placeholder="STOK-A7K2M9" onKeyDown={(e) => e.key === "Enter" && entrarConCodigo()}
+                pista="Seis caracteres que te pasa el jefe de la obra o quien la creó." />
+              <Boton tono="primario" onClick={entrarConCodigo} disabled={ocupado} style={{ width: "100%", padding: 13 }}>
+                {ocupado ? "Entrando…" : "Entrar a la obra"}
+              </Boton>
+            </>
+          ) : (
+            <>
+              <Campo etiqueta="Nombre de la obra" value={nueva.nombre} onChange={(e) => setNueva({ ...nueva, nombre: e.target.value })}
+                placeholder="Edificio Los Aromos" />
+              <Campo etiqueta="Identificador (opcional)" value={nueva.obraId}
+                onChange={(e) => setNueva({ ...nueva, obraId: e.target.value.toUpperCase() })}
+                placeholder="OBRA-001" onKeyDown={(e) => e.key === "Enter" && abrirObra()}
+                pista="Es la llave que separa las filas dentro de la planilla. Si lo dejas en blanco, se asigna uno libre. No se puede cambiar después." />
+              <Boton tono="primario" onClick={abrirObra} disabled={ocupado} style={{ width: "100%", padding: 13 }}>
+                {ocupado ? "Creando…" : "Crear obra y administrarla"}
+              </Boton>
+            </>
+          )}
+
+          <div style={{ marginTop: 18, textAlign: "center" }}>
+            <button onClick={salir} style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".14em", background: "none", border: "none", color: C.tenue, cursor: "pointer", textTransform: "uppercase" }}>
+              Salir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Pantalla de error con salida: se usa cuando no podemos leer las obras. */
+function Aviso({ titulo, texto, accion, onAccion, salir }) {
+  return (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>
+      <div style={{ maxWidth: 420, textAlign: "center" }}>
+        <Marca tam={24} />
+        <div style={{ ...F.ui, fontSize: 16, fontWeight: 600, color: C.navy, margin: "20px 0 8px" }}>{titulo}</div>
+        <div style={{ ...F.ui, fontSize: 13, color: C.tenue, lineHeight: 1.6, marginBottom: 20 }}>{texto}</div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+          <Boton tono="primario" onClick={onAccion}>{accion}</Boton>
+          <Boton onClick={salir}>Salir</Boton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Selector de obra en la cabecera. Con una sola obra no se despliega nada. */
+function SelectorObra({ obra, obras, cambiarObra }) {
+  const [abierto, setAbierto] = useState(false);
+  const sola = obras.length <= 1;
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => !sola && setAbierto((v) => !v)} disabled={sola}
+        title={sola ? obra.nombre : "Cambiar de obra"}
+        style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 11px", cursor: sola ? "default" : "pointer",
+          border: `1px solid ${abierto ? C.naranja : C.linea}`, background: C.panel, maxWidth: 260 }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.naranja, flex: "0 0 auto" }} />
+        <span style={{ textAlign: "left", minWidth: 0 }}>
+          <span style={{ ...F.ui, fontSize: 13, fontWeight: 600, color: C.navy, display: "block",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{obra.nombre}</span>
+          <span style={{ ...F.mono, fontSize: 8.5, color: C.apagado, display: "block", marginTop: 1 }}>{obra.obraId}</span>
+        </span>
+        {!sola && <span style={{ ...F.mono, fontSize: 9, color: C.tenue, flex: "0 0 auto" }}>▾</span>}
+      </button>
+
+      {abierto && (
+        <>
+          <div onClick={() => setAbierto(false)} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
+          <div style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, minWidth: 250, zIndex: 51,
+            background: C.panel, border: `1px solid ${C.linea}`, boxShadow: "0 14px 40px rgba(15,27,61,.16)" }}>
+            {obras.map((o) => (
+              <button key={o.id} onClick={() => { cambiarObra(o.id); setAbierto(false); }}
+                style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 13px", cursor: "pointer",
+                  border: "none", borderBottom: `1px solid ${C.linea}`,
+                  background: o.id === obra.id ? C.suave : "transparent" }}>
+                <div style={{ ...F.ui, fontSize: 13, fontWeight: o.id === obra.id ? 700 : 500, color: C.navy }}>{o.nombre}</div>
+                <div style={{ ...F.mono, fontSize: 8.5, color: C.apagado, marginTop: 2 }}>
+                  {o.obraId} · {o.rol === "admin" ? "administras" : "miembro"}
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ============================================================ PANEL */
-function Panel({ sesion, salir, datos, cfg, setCfg, conexion, aviso, traer, llamarAgente, guardarMinimo, resolverCompra, vistas, setVistas }) {
+function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso, traer, llamarAgente,
+  guardarMinimo, resolverCompra, vistas, setVistas, guardarAjustes, nuevoCodigo, dejarObra, alEntrarAObra }) {
   const [buscar, setBuscar] = useState("");
   const [fEstado, setFEstado] = useState("todos");
   const [verAjustes, setVerAjustes] = useState(false);
@@ -389,6 +645,7 @@ function Panel({ sesion, salir, datos, cfg, setCfg, conexion, aviso, traer, llam
       <header style={{ background: C.panel, borderBottom: `1px solid ${C.linea}`, position: "sticky", top: 0, zIndex: 40 }}>
         <div style={{ maxWidth: 1420, margin: "0 auto", padding: "14px 22px", display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
           <Marca />
+          <SelectorObra obra={obra} obras={obras} cambiarObra={cambiarObra} />
           <Latido conexion={conexion} />
           <div style={{ flex: 1 }} />
           <AgentePastilla nombre="Captura" activo={d.agentes.captura?.activo} detalle={d.agentes.captura?.ultimo ? `${d.agentes.captura?.lectores ?? 1} lector · ${hora(d.agentes.captura.ultimo)}` : "sin lecturas"} />
@@ -432,8 +689,8 @@ function Panel({ sesion, salir, datos, cfg, setCfg, conexion, aviso, traer, llam
           <Boton onClick={() => llamarAgente("prediccion")}>Recalcular predicción</Boton>
           <Boton tono="primario" onClick={() => llamarAgente("accion")}>Revisar compras y avisar</Boton>
           <div style={{ flex: 1 }} />
-          {cfg.linkPlanilla && <Enlace href={cfg.linkPlanilla}>Abrir planilla</Enlace>}
-          {cfg.linkCarpeta && <Enlace href={cfg.linkCarpeta}>Abrir programación</Enlace>}
+          {obra.linkPlanilla && <Enlace href={obra.linkPlanilla}>Abrir planilla</Enlace>}
+          {obra.linkCarpeta && <Enlace href={obra.linkCarpeta}>Abrir programación</Enlace>}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.55fr) minmax(0,1fr)", gap: 20, alignItems: "start" }}>
@@ -660,35 +917,150 @@ function Panel({ sesion, salir, datos, cfg, setCfg, conexion, aviso, traer, llam
 
       {/* ── ajustes ── */}
       {verAjustes && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15,27,61,.45)", display: "grid", placeItems: "center", zIndex: 80, padding: 18 }}
-          onClick={(e) => e.target === e.currentTarget && setVerAjustes(false)}>
-          <div style={{ background: C.panel, border: `1px solid ${C.linea}`, width: "100%", maxWidth: 520, maxHeight: "88vh", overflowY: "auto",
-            padding: "26px 28px", animation: "entra .25s ease", boxShadow: "0 24px 70px rgba(15,27,61,.25)" }}>
-            <Subtitulo>Ajustes</Subtitulo>
-            <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.apagado, textTransform: "uppercase", margin: "12px 0 18px" }}>
-              Configuración técnica · uso interno del equipo
-            </div>
-            <Campo etiqueta="Dirección de n8n" value={cfg.base} onChange={(e) => setCfg({ ...cfg, base: e.target.value.trim() })}
-              placeholder="https://tunombre.app.n8n.cloud"
-              pista="Sin la barra final. De aquí cuelgan la lectura de la planilla, los dos agentes y el registro de compras." />
-            <Campo etiqueta="Identificador de obra" value={cfg.obraId} onChange={(e) => setCfg({ ...cfg, obraId: e.target.value })} placeholder="OBRA-001" />
-            <Campo etiqueta="Enlace de la planilla (Google Sheets)" value={cfg.linkPlanilla} onChange={(e) => setCfg({ ...cfg, linkPlanilla: e.target.value.trim() })}
-              placeholder="https://docs.google.com/spreadsheets/d/…"
-              pista="Solo para abrirla desde el botón. Quien la lee es n8n." />
-            <Campo etiqueta="Carpeta de programación de obra (Drive)" value={cfg.linkCarpeta} onChange={(e) => setCfg({ ...cfg, linkCarpeta: e.target.value.trim() })}
-              placeholder="https://drive.google.com/drive/folders/…"
-              pista="El agente de predicción lee de aquí la carta Gantt más reciente." />
-            <div style={{ background: C.suave, padding: "12px 14px", ...F.ui, fontSize: 12.5, color: C.tenue, lineHeight: 1.6, margin: "4px 0 18px" }}>
-              {cfg.base
-                ? <>Conectado. El inventario, las predicciones y las compras llegan solos desde la planilla.</>
-                : <><b style={{ color: C.navy }}>Modo demostración.</b> Sin dirección de n8n, la pantalla muestra datos de muestra para que puedas recorrerla.</>}
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <Boton tono="primario" onClick={() => { setVerAjustes(false); traer(true); }}>Listo</Boton>
-            </div>
+        <Ajustes obra={obra} aviso={aviso} guardarAjustes={guardarAjustes} nuevoCodigo={nuevoCodigo}
+          dejarObra={dejarObra} alEntrarAObra={alEntrarAObra} soloUnaObra={obras.length <= 1}
+          cerrar={() => { setVerAjustes(false); traer(true); }} />
+      )}
+    </div>
+  );
+}
+
+/* ============================================================ AJUSTES
+   La configuración es de la obra, no de la persona: la comparte todo el
+   equipo. Por eso se guarda con un botón y solo la toca un administrador. */
+function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrarAObra, soloUnaObra, cerrar }) {
+  const [b, setB] = useState(obra);
+  const [ocupado, setOcupado] = useState(false);
+  const [otroCodigo, setOtroCodigo] = useState("");
+  const admin = obra.rol === "admin";
+  const sucio = ["nombre", "base", "linkPlanilla", "linkCarpeta"].some((k) => b[k] !== obra[k]);
+
+  useEffect(() => { setB(obra); }, [obra]);
+
+  const guardar = async () => {
+    setOcupado(true);
+    try { await guardarAjustes(b); }
+    catch (e) { aviso(e.message, "error"); }
+    finally { setOcupado(false); }
+  };
+
+  const copiar = async () => {
+    try { await navigator.clipboard.writeText(obra.codigo); aviso("Código copiado."); }
+    catch { aviso(`El código es ${obra.codigo}`); }
+  };
+
+  const rotar = async () => {
+    if (!window.confirm("Se generará un código nuevo y el actual dejará de servir. ¿Continuar?")) return;
+    try { await nuevoCodigo(); } catch (e) { aviso(e.message, "error"); }
+  };
+
+  const salirDeLaObra = async () => {
+    if (!window.confirm(`Vas a salir de ${obra.nombre}. Para volver necesitarás el código otra vez. ¿Continuar?`)) return;
+    try { await dejarObra(); cerrar(); } catch (e) { aviso(e.message, "error"); }
+  };
+
+  const entrarAOtra = async () => {
+    if (!otroCodigo.trim()) return aviso("Escribe el código de la otra obra.", "error");
+    setOcupado(true);
+    try {
+      const o = await unirseAObra(otroCodigo);
+      setOtroCodigo("");
+      aviso(`Ahora también estás en ${o.nombre}.`);
+      await alEntrarAObra(o);
+      cerrar();
+    } catch (e) { aviso(e.message, "error"); }
+    finally { setOcupado(false); }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,27,61,.45)", display: "grid", placeItems: "center", zIndex: 80, padding: 18 }}
+      onClick={(e) => e.target === e.currentTarget && cerrar()}>
+      <div style={{ background: C.panel, border: `1px solid ${C.linea}`, width: "100%", maxWidth: 520, maxHeight: "88vh", overflowY: "auto",
+        padding: "26px 28px", animation: "entra .25s ease", boxShadow: "0 24px 70px rgba(15,27,61,.25)" }}>
+        <Subtitulo>Ajustes de la obra</Subtitulo>
+        <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.apagado, textTransform: "uppercase", margin: "12px 0 18px" }}>
+          {admin ? "Administras esta obra" : "Solo lectura · pídeselo al administrador"}
+        </div>
+
+        {/* ── invitar ── */}
+        <div style={{ border: `1px solid ${C.linea}`, padding: "14px 16px", marginBottom: 20 }}>
+          <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 8 }}>
+            Código para invitar
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ ...F.mono, fontSize: 19, fontWeight: 600, color: C.naranja, letterSpacing: ".08em" }}>{obra.codigo}</div>
+            <div style={{ flex: 1 }} />
+            <Boton onClick={copiar} style={{ padding: "7px 11px" }}>Copiar</Boton>
+            {admin && <Boton onClick={rotar} style={{ padding: "7px 11px" }} titulo="Invalida el código actual">Cambiar</Boton>}
+          </div>
+          <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 9, lineHeight: 1.5 }}>
+            Quien lo escriba al registrarse entra a esta obra y ve esta bodega. Nadie más.
           </div>
         </div>
-      )}
+
+        <Campo etiqueta="Nombre de la obra" value={b.nombre} disabled={!admin}
+          onChange={(e) => setB({ ...b, nombre: e.target.value })} placeholder="Edificio Los Aromos" />
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 6 }}>
+            Identificador de obra
+          </div>
+          <div style={{ ...F.mono, fontSize: 14, color: C.navy, padding: "10px 12px", background: C.suave, border: `1px solid ${C.linea}` }}>
+            {obra.obraId}
+          </div>
+          <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 5, lineHeight: 1.5 }}>
+            Fijo. Es la llave con que n8n separa las filas de esta obra en la planilla; cambiarla dejaría huérfano todo el inventario ya registrado.
+          </div>
+        </div>
+
+        <Campo etiqueta="Dirección de n8n" value={b.base} disabled={!admin}
+          onChange={(e) => setB({ ...b, base: e.target.value.trim() })}
+          placeholder="https://tunombre.app.n8n.cloud"
+          pista="Sin la barra final. De aquí cuelgan la lectura de la planilla, los dos agentes y el registro de compras." />
+        <Campo etiqueta="Enlace de la planilla (Google Sheets)" value={b.linkPlanilla} disabled={!admin}
+          onChange={(e) => setB({ ...b, linkPlanilla: e.target.value.trim() })}
+          placeholder="https://docs.google.com/spreadsheets/d/…"
+          pista="Solo para abrirla desde el botón. Quien la lee es n8n." />
+        <Campo etiqueta="Carpeta de programación de obra (Drive)" value={b.linkCarpeta} disabled={!admin}
+          onChange={(e) => setB({ ...b, linkCarpeta: e.target.value.trim() })}
+          placeholder="https://drive.google.com/drive/folders/…"
+          pista="El agente de predicción lee de aquí la carta Gantt más reciente." />
+
+        <div style={{ background: C.suave, padding: "12px 14px", ...F.ui, fontSize: 12.5, color: C.tenue, lineHeight: 1.6, margin: "4px 0 18px" }}>
+          {obra.base
+            ? <>Conectado. El inventario, las predicciones y las compras de <b style={{ color: C.navy }}>{obra.obraId}</b> llegan solos desde la planilla.</>
+            : <><b style={{ color: C.navy }}>Modo demostración.</b> Sin dirección de n8n, la pantalla muestra datos de muestra para que puedas recorrerla.</>}
+        </div>
+
+        {/* ── sumarse a otra obra ── */}
+        <div style={{ borderTop: `1px solid ${C.linea}`, paddingTop: 16, marginBottom: 18 }}>
+          <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 10 }}>
+            Entrar a otra obra
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+            <input value={otroCodigo} onChange={(e) => setOtroCodigo(e.target.value.toUpperCase())} placeholder="STOK-A7K2M9"
+              onKeyDown={(e) => e.key === "Enter" && entrarAOtra()}
+              style={{ flex: 1, ...F.ui, fontSize: 14, padding: "10px 12px", border: `1px solid ${C.linea}`, background: C.panel, color: C.navy, outline: "none" }} />
+            <Boton onClick={entrarAOtra} disabled={ocupado} style={{ padding: "11px 14px" }}>Entrar</Boton>
+          </div>
+          <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 7, lineHeight: 1.5 }}>
+            Puedes pertenecer a varias obras y cambiar entre ellas desde la cabecera.
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <button onClick={salirDeLaObra} disabled={soloUnaObra}
+            title={soloUnaObra ? "Es tu única obra: quedarías sin bodega que mirar" : "Salir de esta obra"}
+            style={{ ...F.mono, fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", background: "none",
+              border: "none", color: soloUnaObra ? C.apagado : C.rojo, cursor: soloUnaObra ? "not-allowed" : "pointer", padding: "8px 0" }}>
+            Salir de esta obra
+          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            {admin && <Boton onClick={guardar} disabled={ocupado || !sucio}>{ocupado ? "Guardando…" : "Guardar"}</Boton>}
+            <Boton tono="primario" onClick={cerrar}>Listo</Boton>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
