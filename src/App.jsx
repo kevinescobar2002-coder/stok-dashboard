@@ -92,12 +92,12 @@ const MUESTRA = {
 };
 
 /* ---------- piezas de marca ---------- */
+/* El alt va vacío a propósito: la palabra STOK viene justo al lado, así que
+   un lector de pantalla la diría dos veces. */
 const Marca = ({ tam = 21 }) => (
-  <div style={{ ...F.disp, fontSize: tam, display: "flex", alignItems: "flex-end", gap: 7, color: C.navy }}>
-    <svg width={tam * 1.1} height={tam * 0.8} viewBox="0 0 34 26" style={{ marginBottom: 3 }} aria-hidden>
-      <path d="M4 22 A15 15 0 0 1 30 22" stroke={C.naranja} strokeWidth="4" fill="none" strokeLinecap="round" />
-      <circle cx="17" cy="22" r="3.4" fill={C.naranja} />
-    </svg>
+  <div style={{ ...F.disp, fontSize: tam, display: "flex", alignItems: "center", gap: 9, color: C.navy }}>
+    <img src="/logo.png" alt="" height={Math.round(tam * 1.5)}
+      style={{ width: "auto", display: "block", flex: "0 0 auto" }} />
     STOK<span style={{ color: C.naranja }}>.</span>
   </div>
 );
