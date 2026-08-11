@@ -14,15 +14,19 @@ import {
    invitación y solo se ven los datos de la obra activa.
    ============================================================ */
 
+/* Los respaldos importan: si Google Fonts tarda o está bloqueado, el texto
+   cae en una grotesca del sistema y no en la serif por defecto del navegador,
+   que es lo que hacía que la pantalla se viera mal los primeros segundos. */
+const SISTEMA = "'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif";
 const F = {
-  disp: { fontFamily: "'Archivo',sans-serif", fontVariationSettings: "'wdth' 125", fontWeight: 900, textTransform: "uppercase", letterSpacing: ".005em" },
-  mono: { fontFamily: "'IBM Plex Mono',monospace" },
-  ui: { fontFamily: "'Schibsted Grotesk','Archivo',sans-serif", letterSpacing: "-.011em" },
+  disp: { fontFamily: `'Archivo',${SISTEMA}`, fontVariationSettings: "'wdth' 125", fontWeight: 900, textTransform: "uppercase", letterSpacing: ".005em" },
+  mono: { fontFamily: "'IBM Plex Mono','Cascadia Mono',Consolas,ui-monospace,'SF Mono',Menlo,monospace" },
+  ui: { fontFamily: `'Schibsted Grotesk','Archivo',${SISTEMA}`, letterSpacing: "-.011em" },
 };
 const C = {
   fondo: "#F6F7FA", panel: "#FFFFFF", suave: "#F2F4F9", linea: "#E3E7F1",
   navy: "#0F1B3D", naranja: "#E8622C",
-  texto: "#0F1B3D", tenue: "#5B6785", apagado: "#8B94AC",
+  texto: "#0F1B3D", tenue: "#5B6785", apagado: "#656F8D",
   verde: "#0E9F6E", ambar: "#B7791F", rojo: "#D64545",
 };
 
@@ -104,7 +108,7 @@ const Subtitulo = ({ children, tam = 15 }) => (
   </div>
 );
 const Boton = ({ children, onClick, tono = "borde", disabled, style, titulo }) => {
-  const base = { ...F.mono, fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase",
+  const base = { ...F.mono, fontSize: 11.5, letterSpacing: ".14em", textTransform: "uppercase",
     padding: "9px 14px", cursor: disabled ? "not-allowed" : "pointer", border: "1px solid",
     background: "transparent", color: C.navy, transition: "all .18s", opacity: disabled ? 0.45 : 1, whiteSpace: "nowrap" };
   const tonos = {
@@ -120,13 +124,13 @@ const Boton = ({ children, onClick, tono = "borde", disabled, style, titulo }) =
 };
 const Campo = ({ etiqueta, pista, ...props }) => (
   <label style={{ display: "block", marginBottom: 14 }}>
-    <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 6 }}>{etiqueta}</div>
+    <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 6 }}>{etiqueta}</div>
     <input {...props} style={{ width: "100%", background: props.disabled ? C.suave : C.panel, border: `1px solid ${C.linea}`,
       color: props.disabled ? C.tenue : C.navy, cursor: props.disabled ? "not-allowed" : "text",
       padding: "10px 12px", ...F.ui, fontSize: 14, fontWeight: 450, outline: "none", boxSizing: "border-box" }}
       onFocus={(e) => { if (!props.disabled) e.target.style.borderColor = C.naranja; }}
       onBlur={(e) => (e.target.style.borderColor = C.linea)} />
-    {pista && <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 5, lineHeight: 1.5 }}>{pista}</div>}
+    {pista && <div style={{ ...F.ui, fontSize: 12.5, color: C.apagado, marginTop: 5, lineHeight: 1.5 }}>{pista}</div>}
   </label>
 );
 
@@ -315,7 +319,7 @@ export default function App() {
 
   if (cargando) return (
     <Base><div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-      <div style={{ ...F.mono, fontSize: 11, letterSpacing: ".3em", color: C.tenue }}>ABRIENDO BODEGA…</div>
+      <div style={{ ...F.mono, fontSize: 12, letterSpacing: ".3em", color: C.tenue }}>ABRIENDO BODEGA…</div>
     </div></Base>
   );
 
@@ -328,7 +332,7 @@ export default function App() {
     );
     if (obras === null) return (
       <div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
-        <div style={{ ...F.mono, fontSize: 11, letterSpacing: ".3em", color: C.tenue }}>BUSCANDO TUS OBRAS…</div>
+        <div style={{ ...F.mono, fontSize: 12, letterSpacing: ".3em", color: C.tenue }}>BUSCANDO TUS OBRAS…</div>
       </div>
     );
     if (obras.length === 0 || !obra) return (
@@ -348,7 +352,7 @@ export default function App() {
       {contenido()}
       <div style={{ position: "fixed", right: 18, bottom: 18, display: "flex", flexDirection: "column", gap: 8, zIndex: 90 }}>
         {toasts.map((t) => (
-          <div key={t.id} className="toast" style={{ ...F.mono, fontSize: 11, letterSpacing: ".05em", padding: "11px 15px",
+          <div key={t.id} className="toast" style={{ ...F.mono, fontSize: 12, letterSpacing: ".05em", padding: "11px 15px",
             background: C.navy, color: "#fff", borderLeft: `3px solid ${t.tono === "error" ? "#FF7A7A" : C.naranja}`,
             maxWidth: 340, boxShadow: "0 6px 24px rgba(15,27,61,.18)" }}>{t.txt}</div>
         ))}
@@ -360,7 +364,6 @@ export default function App() {
 const Base = ({ children }) => (
   <div style={{ ...F.ui, background: C.fondo, minHeight: "100vh", color: C.texto, fontWeight: 450 }}>
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400..800&display=swap');
       *{box-sizing:border-box} ::selection{background:${C.naranja};color:#fff}
       ::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-thumb{background:${C.linea};border-radius:4px}
       input,select,button{font:inherit}
@@ -429,7 +432,7 @@ function Acceso({ aviso }) {
           <div style={{ position: "absolute", left: 0, right: 0, height: "9%", top: "-8%", pointerEvents: "none",
             background: `linear-gradient(180deg,transparent,${C.naranja}2E 50%,transparent)`, animation: "escaneo 4.6s ease-in-out infinite" }} />
           <Marca tam={30} />
-          <div style={{ ...F.mono, fontSize: 10, letterSpacing: ".28em", color: C.tenue, textTransform: "uppercase", margin: "10px 0 28px" }}>
+          <div style={{ ...F.mono, fontSize: 11, letterSpacing: ".28em", color: C.tenue, textTransform: "uppercase", margin: "10px 0 28px" }}>
             Sala de control · Bodega de obra
           </div>
           {modo === "crear" && <Campo etiqueta="Nombre" value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} placeholder="Tu nombre" />}
@@ -446,7 +449,7 @@ function Acceso({ aviso }) {
           </Boton>
           <div style={{ marginTop: 18, textAlign: "center" }}>
             <button onClick={() => setModo(modo === "crear" ? "entrar" : "crear")}
-              style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".14em", background: "none", border: "none", color: C.tenue, cursor: "pointer", textTransform: "uppercase" }}>
+              style={{ ...F.mono, fontSize: 11.5, letterSpacing: ".14em", background: "none", border: "none", color: C.tenue, cursor: "pointer", textTransform: "uppercase" }}>
               {modo === "crear" ? "Ya tengo cuenta → entrar" : "Primera vez aquí → crear cuenta"}
             </button>
           </div>
@@ -505,7 +508,7 @@ function Bienvenida({ sesion, salir, aviso, alEntrar }) {
 
           <div style={{ display: "flex", gap: 0, marginBottom: 20, border: `1px solid ${C.linea}` }}>
             {[["codigo", "Tengo un código"], ["crear", "Crear obra nueva"]].map(([v, t]) => (
-              <button key={v} onClick={() => setVia(v)} style={{ ...F.mono, fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase",
+              <button key={v} onClick={() => setVia(v)} style={{ ...F.mono, fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase",
                 flex: 1, padding: "10px 8px", cursor: "pointer", border: "none",
                 background: via === v ? C.navy : "transparent", color: via === v ? "#fff" : C.tenue }}>{t}</button>
             ))}
@@ -535,7 +538,7 @@ function Bienvenida({ sesion, salir, aviso, alEntrar }) {
           )}
 
           <div style={{ marginTop: 18, textAlign: "center" }}>
-            <button onClick={salir} style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".14em", background: "none", border: "none", color: C.tenue, cursor: "pointer", textTransform: "uppercase" }}>
+            <button onClick={salir} style={{ ...F.mono, fontSize: 11.5, letterSpacing: ".14em", background: "none", border: "none", color: C.tenue, cursor: "pointer", textTransform: "uppercase" }}>
               Salir
             </button>
           </div>
@@ -577,9 +580,9 @@ function SelectorObra({ obra, obras, cambiarObra }) {
         <span style={{ textAlign: "left", minWidth: 0 }}>
           <span style={{ ...F.ui, fontSize: 13, fontWeight: 600, color: C.navy, display: "block",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{obra.nombre}</span>
-          <span style={{ ...F.mono, fontSize: 8.5, color: C.apagado, display: "block", marginTop: 1 }}>{obra.obraId}</span>
+          <span style={{ ...F.mono, fontSize: 10, color: C.apagado, display: "block", marginTop: 1 }}>{obra.obraId}</span>
         </span>
-        {!sola && <span style={{ ...F.mono, fontSize: 9, color: C.tenue, flex: "0 0 auto" }}>▾</span>}
+        {!sola && <span style={{ ...F.mono, fontSize: 10.5, color: C.tenue, flex: "0 0 auto" }}>▾</span>}
       </button>
 
       {abierto && (
@@ -593,7 +596,7 @@ function SelectorObra({ obra, obras, cambiarObra }) {
                   border: "none", borderBottom: `1px solid ${C.linea}`,
                   background: o.id === obra.id ? C.suave : "transparent" }}>
                 <div style={{ ...F.ui, fontSize: 13, fontWeight: o.id === obra.id ? 700 : 500, color: C.navy }}>{o.nombre}</div>
-                <div style={{ ...F.mono, fontSize: 8.5, color: C.apagado, marginTop: 2 }}>
+                <div style={{ ...F.mono, fontSize: 10, color: C.apagado, marginTop: 2 }}>
                   {o.obraId} · {o.rol === "admin" ? "administras" : "miembro"}
                 </div>
               </button>
@@ -663,11 +666,11 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
         <div style={{ background: C.navy, color: "#fff", borderBottom: `3px solid ${C.naranja}` }}>
           <div style={{ maxWidth: 1420, margin: "0 auto", padding: "13px 22px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
             <span className="late" style={{ width: 9, height: 9, borderRadius: "50%", background: C.naranja, flex: "0 0 auto" }} />
-            <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".22em", color: C.naranja }}>AGENTE DE ACCIÓN</div>
+            <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".22em", color: C.naranja }}>AGENTE DE ACCIÓN</div>
             <div style={{ ...F.ui, fontSize: 14.5, fontWeight: 500, flex: 1, minWidth: 240 }}>{alertaViva.mensaje}</div>
-            {alertaViva.correo_enviado && <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".16em", color: "#A9B4CE" }}>CORREO ENVIADO</div>}
+            {alertaViva.correo_enviado && <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".16em", color: "#A9B4CE" }}>CORREO ENVIADO</div>}
             <button onClick={() => setVistas((v) => [...v, alertaViva.alerta_id])}
-              style={{ ...F.mono, fontSize: 10, letterSpacing: ".14em", background: "transparent", border: "1px solid rgba(255,255,255,.28)", color: "#fff", padding: "7px 12px", cursor: "pointer" }}>
+              style={{ ...F.mono, fontSize: 11, letterSpacing: ".14em", background: "transparent", border: "1px solid rgba(255,255,255,.28)", color: "#fff", padding: "7px 12px", cursor: "pointer" }}>
               ENTENDIDO
             </button>
           </div>
@@ -704,7 +707,7 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
                   style={{ ...F.ui, fontSize: 13, padding: "7px 10px", border: `1px solid ${C.linea}`, background: C.panel, color: C.navy, outline: "none", width: 190 }}
                   onFocus={(e) => (e.target.style.borderColor = C.naranja)} onBlur={(e) => (e.target.style.borderColor = C.linea)} />
                 {[["todos", "Todos"], ["critico", "Bajo mínimo"], ["pronto", "Reponer"], ["ok", "OK"]].map(([v, t]) => (
-                  <button key={v} onClick={() => setFEstado(v)} style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase",
+                  <button key={v} onClick={() => setFEstado(v)} style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
                     padding: "7px 9px", cursor: "pointer", background: fEstado === v ? C.navy : "transparent",
                     color: fEstado === v ? "#fff" : C.tenue, border: `1px solid ${fEstado === v ? C.navy : C.linea}` }}>{t}</button>
                 ))}
@@ -719,7 +722,7 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
                     <thead>
                       <tr style={{ background: C.suave }}>
                         {["Material", "Stock", "Mínimo", "Quiebre", "Estado", "Proveedor"].map((h, i) => (
-                          <th key={h} style={{ ...F.mono, fontSize: 9, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase",
+                          <th key={h} style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase",
                             textAlign: i === 1 || i === 2 ? "right" : "left", padding: "10px 14px", borderBottom: `1px solid ${C.linea}`, fontWeight: 500 }}>{h}</th>
                         ))}
                       </tr>
@@ -732,24 +735,24 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
                             <Td>
                               <div style={{ ...F.ui, fontSize: 13.5, fontWeight: 600, color: C.navy, display: "flex", alignItems: "center", gap: 7 }}>
                                 {m.nombre}
-                                {!m.tag_registrado && <span title="Sin tag NTAG215 registrado en la planilla" style={{ ...F.mono, fontSize: 8.5, letterSpacing: ".12em", color: C.ambar, border: `1px solid ${C.ambar}55`, padding: "1px 5px" }}>SIN TAG</span>}
+                                {!m.tag_registrado && <span title="Sin tag NTAG215 registrado en la planilla" style={{ ...F.mono, fontSize: 10, letterSpacing: ".12em", color: C.ambar, border: `1px solid ${C.ambar}55`, padding: "1px 5px" }}>SIN TAG</span>}
                               </div>
-                              <div style={{ ...F.mono, fontSize: 9.5, color: C.apagado, marginTop: 2 }}>{m.material_id} · {m.categoria}</div>
+                              <div style={{ ...F.mono, fontSize: 10.5, color: C.apagado, marginTop: 2 }}>{m.material_id} · {m.categoria}</div>
                             </Td>
                             <Td der>
                               <span style={{ ...F.mono, fontSize: 15, fontWeight: 600, color: e.color }}>{num(m.stock)}</span>
-                              <span style={{ ...F.mono, fontSize: 9.5, color: C.apagado, marginLeft: 4 }}>{m.unidad}</span>
+                              <span style={{ ...F.mono, fontSize: 10.5, color: C.apagado, marginLeft: 4 }}>{m.unidad}</span>
                             </Td>
                             <Td der><Editable valor={num(m.minimo)} onCambio={(v) => guardarMinimo(m.material_id, "minimo", v)} /></Td>
                             <Td>
                               {p ? (
                                 <div>
-                                  <div style={{ ...F.mono, fontSize: 11.5, color: colorUrgencia(p.urgencia), fontWeight: 600 }}>
+                                  <div style={{ ...F.mono, fontSize: 12.5, color: colorUrgencia(p.urgencia), fontWeight: 600 }}>
                                     {num(p.dias_para_quiebre) === 0 ? "hoy" : `${num(p.dias_para_quiebre)} días`}
                                   </div>
-                                  <div style={{ ...F.mono, fontSize: 9, color: C.apagado, marginTop: 1, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.partida}</div>
+                                  <div style={{ ...F.mono, fontSize: 10.5, color: C.apagado, marginTop: 1, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.partida}</div>
                                 </div>
-                              ) : <span style={{ ...F.mono, fontSize: 11, color: C.apagado }}>—</span>}
+                              ) : <span style={{ ...F.mono, fontSize: 12, color: C.apagado }}>—</span>}
                             </Td>
                             <Td><Chip color={e.color}>{e.txt}</Chip></Td>
                             <Td><span style={{ ...F.ui, fontSize: 12.5, color: C.tenue }}>{m.proveedor || "—"}</span></Td>
@@ -767,7 +770,7 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
                 <Subtitulo tam={13}>Proyección de quiebres</Subtitulo>
                 <div style={{ flex: 1 }} />
-                <div style={{ ...F.mono, fontSize: 9, letterSpacing: ".16em", color: C.apagado }}>CONSUMO RFID × PROGRAMACIÓN DE OBRA</div>
+                <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".16em", color: C.apagado }}>CONSUMO RFID × PROGRAMACIÓN DE OBRA</div>
               </div>
               {d.predicciones.length === 0 ? (
                 <Vacio compacto titulo="Sin proyecciones todavía" texto="Pulsa «Recalcular predicción»: el agente leerá la programación de obra desde Drive." />
@@ -789,7 +792,7 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
                           <div style={{ width: `${ancho}%`, height: "100%", background: colorUrgencia(p.urgencia), transition: "width .4s" }} />
                         </div>
                         <div style={{ ...F.ui, fontSize: 12, color: C.tenue, lineHeight: 1.5 }}>{p.razonamiento}</div>
-                        <div style={{ ...F.mono, fontSize: 9, color: C.apagado, marginTop: 3 }}>
+                        <div style={{ ...F.mono, fontSize: 10.5, color: C.apagado, marginTop: 3 }}>
                           {num(p.consumo_diario).toFixed(2)}/día · {p.partida}
                         </div>
                       </div>
@@ -820,13 +823,13 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
                         <span style={{ color: C.apagado }}> · {clp(r.costo_estimado)}</span>
                       </div>
                       <div style={{ ...F.ui, fontSize: 12, color: C.tenue, lineHeight: 1.5, marginBottom: 4 }}>{r.motivo}</div>
-                      <div style={{ ...F.mono, fontSize: 9, color: C.apagado, marginBottom: 10 }}>{r.proveedor}</div>
+                      <div style={{ ...F.mono, fontSize: 10.5, color: C.apagado, marginBottom: 10 }}>{r.proveedor}</div>
                       {r.estado === "aprobada" ? (
-                        <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".16em", color: C.verde }}>✓ COMPRA APROBADA</div>
+                        <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".16em", color: C.verde }}>✓ COMPRA APROBADA</div>
                       ) : (
                         <div style={{ display: "flex", gap: 8 }}>
-                          <Boton tono="primario" onClick={() => resolverCompra(r, "aprobada")} style={{ padding: "7px 11px", fontSize: 9.5 }}>Aprobar compra</Boton>
-                          <Boton onClick={() => resolverCompra(r, "descartada")} style={{ padding: "7px 11px", fontSize: 9.5 }}>Descartar</Boton>
+                          <Boton tono="primario" onClick={() => resolverCompra(r, "aprobada")} style={{ padding: "7px 11px", fontSize: 10.5 }}>Aprobar compra</Boton>
+                          <Boton onClick={() => resolverCompra(r, "descartada")} style={{ padding: "7px 11px", fontSize: 10.5 }}>Descartar</Boton>
                         </div>
                       )}
                     </div>
@@ -844,10 +847,10 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 300, overflowY: "auto", marginTop: 14 }}>
                   {d.movimientos.map((mv, i) => (
                     <div key={i} style={{ borderLeft: `2px solid ${num(mv.delta) >= 0 ? C.verde : C.ambar}`, paddingLeft: 10 }}>
-                      <div style={{ ...F.mono, fontSize: 11.5, color: C.navy }}>
+                      <div style={{ ...F.mono, fontSize: 12.5, color: C.navy }}>
                         <span style={{ color: num(mv.delta) >= 0 ? C.verde : C.ambar, fontWeight: 600 }}>{num(mv.delta) >= 0 ? "+" : ""}{num(mv.delta)}</span>{" "}{mv.nombre}
                       </div>
-                      <div style={{ ...F.mono, fontSize: 9, color: C.apagado, marginTop: 1 }}>{hora(mv.ts)} · {mv.direccion} · queda {num(mv.stock)}</div>
+                      <div style={{ ...F.mono, fontSize: 10.5, color: C.apagado, marginTop: 1 }}>{hora(mv.ts)} · {mv.direccion} · queda {num(mv.stock)}</div>
                     </div>
                   ))}
                 </div>
@@ -869,9 +872,9 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
                         <span className={enLinea ? "late" : ""} style={{ width: 7, height: 7, borderRadius: "50%", marginTop: 5, flex: "0 0 auto",
                           background: !l.activo ? C.apagado : enLinea ? C.verde : C.ambar }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ ...F.mono, fontSize: 11.5, color: C.navy, fontWeight: 600 }}>{l.lector_id}</div>
-                          <div style={{ ...F.ui, fontSize: 11.5, color: C.tenue }}>{l.descripcion || l.zona}</div>
-                          <div style={{ ...F.mono, fontSize: 9, color: C.apagado, marginTop: 2 }}>
+                          <div style={{ ...F.mono, fontSize: 12.5, color: C.navy, fontWeight: 600 }}>{l.lector_id}</div>
+                          <div style={{ ...F.ui, fontSize: 12.5, color: C.tenue }}>{l.descripcion || l.zona}</div>
+                          <div style={{ ...F.mono, fontSize: 10.5, color: C.apagado, marginTop: 2 }}>
                             {!l.activo ? "desactivado en la planilla"
                               : !l.vinculado ? "sin credencial"
                               : l.ultimo_latido ? "último latido " + hora(l.ultimo_latido)
@@ -883,7 +886,7 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
                   })}
                 </div>
               )}
-              <div style={{ ...F.ui, fontSize: 11, color: C.apagado, lineHeight: 1.6, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.linea}` }}>
+              <div style={{ ...F.ui, fontSize: 12, color: C.apagado, lineHeight: 1.6, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.linea}` }}>
                 Para revocar un lector, cambia su token en la pestaña Lectores o ponle <b style={{ color: C.navy }}>activo = no</b>. Deja de escribir al instante.
               </div>
             </div>
@@ -900,7 +903,7 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
                       <span style={{ width: 6, height: 6, borderRadius: "50%", background: a.del_dia ? C.rojo : C.linea, flex: "0 0 auto", marginTop: 5 }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ ...F.ui, fontSize: 12.5, color: C.navy }}>{a.nombre} <span style={{ color: C.apagado }}>({num(a.stock)}/{num(a.minimo)})</span></div>
-                        <div style={{ ...F.mono, fontSize: 9, color: C.apagado }}>{a.fecha} · {a.correo_enviado ? "correo enviado" : "sin correo"}</div>
+                        <div style={{ ...F.mono, fontSize: 10.5, color: C.apagado }}>{a.fecha} · {a.correo_enviado ? "correo enviado" : "sin correo"}</div>
                       </div>
                     </div>
                   ))}
@@ -908,7 +911,7 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
               )}
             </div>
 
-            <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, lineHeight: 1.7, padding: "0 4px" }}>
+            <div style={{ ...F.ui, fontSize: 12.5, color: C.apagado, lineHeight: 1.7, padding: "0 4px" }}>
               La planilla de la obra manda. STOK la lee cada 20 segundos, proyecta contra la programación y avisa cuando corresponde. Nadie cuenta a mano.
             </div>
           </aside>
@@ -917,8 +920,9 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
 
       {/* ── ajustes ── */}
       {verAjustes && (
-        <Ajustes obra={obra} aviso={aviso} guardarAjustes={guardarAjustes} nuevoCodigo={nuevoCodigo}
-          dejarObra={dejarObra} alEntrarAObra={alEntrarAObra} soloUnaObra={obras.length <= 1}
+        <Ajustes obra={obra} obras={obras || []} cambiarObra={cambiarObra} aviso={aviso}
+          guardarAjustes={guardarAjustes} nuevoCodigo={nuevoCodigo}
+          dejarObra={dejarObra} alEntrarAObra={alEntrarAObra} soloUnaObra={(obras || []).length <= 1}
           cerrar={() => { setVerAjustes(false); traer(true); }} />
       )}
     </div>
@@ -928,7 +932,7 @@ function Panel({ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso
 /* ============================================================ AJUSTES
    La configuración es de la obra, no de la persona: la comparte todo el
    equipo. Por eso se guarda con un botón y solo la toca un administrador. */
-function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrarAObra, soloUnaObra, cerrar }) {
+function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrarAObra, soloUnaObra, cerrar }) {
   const [b, setB] = useState(obra);
   const [ocupado, setOcupado] = useState(false);
   const [otroCodigo, setOtroCodigo] = useState("");
@@ -959,6 +963,18 @@ function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrar
     try { await dejarObra(); cerrar(); } catch (e) { aviso(e.message, "error"); }
   };
 
+  /* Cambiar de obra sin cerrar Ajustes: cuando llega la obra nueva, el
+     useEffect de arriba reemplaza el borrador y quedas viendo su configuración.
+     Por eso hay que avisar antes si había algo escrito sin guardar. */
+  const irA = async (id) => {
+    if (id === obra.id) return;
+    if (sucio && !window.confirm("Tienes cambios sin guardar en esta obra. Si cambias ahora, se pierden. ¿Continuar?")) return;
+    setOcupado(true);
+    try { await cambiarObra(id); }
+    catch (e) { aviso(e.message, "error"); }
+    finally { setOcupado(false); }
+  };
+
   const entrarAOtra = async () => {
     if (!otroCodigo.trim()) return aviso("Escribe el código de la otra obra.", "error");
     setOcupado(true);
@@ -978,13 +994,13 @@ function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrar
       <div style={{ background: C.panel, border: `1px solid ${C.linea}`, width: "100%", maxWidth: 520, maxHeight: "88vh", overflowY: "auto",
         padding: "26px 28px", animation: "entra .25s ease", boxShadow: "0 24px 70px rgba(15,27,61,.25)" }}>
         <Subtitulo>Ajustes de la obra</Subtitulo>
-        <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.apagado, textTransform: "uppercase", margin: "12px 0 18px" }}>
+        <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".2em", color: C.apagado, textTransform: "uppercase", margin: "12px 0 18px" }}>
           {admin ? "Administras esta obra" : "Solo lectura · pídeselo al administrador"}
         </div>
 
         {/* ── invitar ── */}
         <div style={{ border: `1px solid ${C.linea}`, padding: "14px 16px", marginBottom: 20 }}>
-          <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 8 }}>
             Código para invitar
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -993,7 +1009,7 @@ function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrar
             <Boton onClick={copiar} style={{ padding: "7px 11px" }}>Copiar</Boton>
             {admin && <Boton onClick={rotar} style={{ padding: "7px 11px" }} titulo="Invalida el código actual">Cambiar</Boton>}
           </div>
-          <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 9, lineHeight: 1.5 }}>
+          <div style={{ ...F.ui, fontSize: 12.5, color: C.apagado, marginTop: 9, lineHeight: 1.5 }}>
             Quien lo escriba al registrarse entra a esta obra y ve esta bodega. Nadie más.
           </div>
         </div>
@@ -1002,13 +1018,13 @@ function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrar
           onChange={(e) => setB({ ...b, nombre: e.target.value })} placeholder="Edificio Los Aromos" />
 
         <div style={{ marginBottom: 14 }}>
-          <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 6 }}>
+          <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 6 }}>
             Identificador de obra
           </div>
           <div style={{ ...F.mono, fontSize: 14, color: C.navy, padding: "10px 12px", background: C.suave, border: `1px solid ${C.linea}` }}>
             {obra.obraId}
           </div>
-          <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 5, lineHeight: 1.5 }}>
+          <div style={{ ...F.ui, fontSize: 12.5, color: C.apagado, marginTop: 5, lineHeight: 1.5 }}>
             Fijo. Es la llave con que n8n encuentra la planilla de esta obra; cambiarla dejaría huérfano todo el inventario ya registrado.
           </div>
         </div>
@@ -1032,10 +1048,43 @@ function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrar
             : <><b style={{ color: C.navy }}>Modo demostración.</b> Sin dirección de n8n, la pantalla muestra datos de muestra para que puedas recorrerla.</>}
         </div>
 
-        {/* ── sumarse a otra obra ── */}
+        {/* ── las obras a las que ya entraste ── */}
         <div style={{ borderTop: `1px solid ${C.linea}`, paddingTop: 16, marginBottom: 18 }}>
-          <div style={{ ...F.mono, fontSize: 9.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 10 }}>
-            Entrar a otra obra
+          <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 10 }}>
+            Tus obras
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            {obras.map((o) => {
+              const actual = o.id === obra.id;
+              return (
+                <button key={o.id} onClick={() => irA(o.id)} disabled={actual || ocupado}
+                  title={actual ? "Es la obra que estás viendo" : `Cambiar a ${o.nombre}`}
+                  style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left",
+                    padding: "10px 12px", cursor: actual ? "default" : "pointer",
+                    border: `1px solid ${actual ? C.naranja : C.linea}`, background: actual ? C.suave : C.panel }}>
+                  <span title={o.base ? "Conectada a n8n" : "Sin dirección de n8n"}
+                    style={{ width: 7, height: 7, borderRadius: "50%", flex: "0 0 auto", background: o.base ? C.verde : C.ambar }} />
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ ...F.ui, fontSize: 14, fontWeight: actual ? 700 : 500, color: C.navy, display: "block",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.nombre}</span>
+                    <span style={{ ...F.mono, fontSize: 10.5, color: C.apagado, display: "block", marginTop: 2 }}>
+                      {o.obraId} · {o.rol === "admin" ? "administras" : "miembro"}
+                    </span>
+                  </span>
+                  <span style={{ ...F.mono, fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase",
+                    color: actual ? C.naranja : C.tenue, flex: "0 0 auto" }}>
+                    {actual ? "Activa" : "Entrar"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── sumarse a una obra donde todavía no estás ── */}
+        <div style={{ borderTop: `1px solid ${C.linea}`, paddingTop: 16, marginBottom: 18 }}>
+          <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".2em", color: C.tenue, textTransform: "uppercase", marginBottom: 10 }}>
+            Sumarte a una obra nueva
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
             <input value={otroCodigo} onChange={(e) => setOtroCodigo(e.target.value.toUpperCase())} placeholder="STOK-A7K2M9"
@@ -1043,15 +1092,15 @@ function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrar
               style={{ flex: 1, ...F.ui, fontSize: 14, padding: "10px 12px", border: `1px solid ${C.linea}`, background: C.panel, color: C.navy, outline: "none" }} />
             <Boton onClick={entrarAOtra} disabled={ocupado} style={{ padding: "11px 14px" }}>Entrar</Boton>
           </div>
-          <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 7, lineHeight: 1.5 }}>
-            Puedes pertenecer a varias obras y cambiar entre ellas desde la cabecera.
+          <div style={{ ...F.ui, fontSize: 12.5, color: C.apagado, marginTop: 7, lineHeight: 1.5 }}>
+            El código se escribe una sola vez: después la obra queda arriba en la lista y en el selector de la cabecera.
           </div>
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <button onClick={salirDeLaObra} disabled={soloUnaObra}
             title={soloUnaObra ? "Es tu única obra: quedarías sin bodega que mirar" : "Salir de esta obra"}
-            style={{ ...F.mono, fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", background: "none",
+            style={{ ...F.mono, fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", background: "none",
               border: "none", color: soloUnaObra ? C.apagado : C.rojo, cursor: soloUnaObra ? "not-allowed" : "pointer", padding: "8px 0" }}>
             Salir de esta obra
           </button>
@@ -1071,7 +1120,7 @@ const Latido = ({ conexion }) => {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 7, paddingLeft: 16, borderLeft: `1px solid ${C.linea}` }}>
       <span className={conexion.tono === "ok" ? "late" : ""} style={{ width: 7, height: 7, borderRadius: "50%", background: col }} />
-      <span style={{ ...F.mono, fontSize: 9, letterSpacing: ".16em", color: C.tenue }}>{conexion.txt}</span>
+      <span style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".16em", color: C.tenue }}>{conexion.txt}</span>
     </div>
   );
 };
@@ -1080,8 +1129,8 @@ const AgentePastilla = ({ nombre, activo, detalle }) => (
   <div title={detalle} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 10px", border: `1px solid ${C.linea}`, background: C.panel }}>
     <span className={activo ? "late" : ""} style={{ width: 6, height: 6, borderRadius: "50%", background: activo ? C.verde : C.apagado, flex: "0 0 auto" }} />
     <div>
-      <div style={{ ...F.mono, fontSize: 9, letterSpacing: ".14em", color: C.navy, textTransform: "uppercase" }}>{nombre}</div>
-      <div style={{ ...F.mono, fontSize: 8.5, color: C.apagado, marginTop: 1 }}>{detalle}</div>
+      <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".14em", color: C.navy, textTransform: "uppercase" }}>{nombre}</div>
+      <div style={{ ...F.mono, fontSize: 10, color: C.apagado, marginTop: 1 }}>{detalle}</div>
     </div>
   </div>
 );
@@ -1089,17 +1138,17 @@ const AgentePastilla = ({ nombre, activo, detalle }) => (
 const Kpi = ({ valor, etiqueta, nota, color }) => (
   <div style={{ background: C.panel, border: `1px solid ${C.linea}`, padding: "16px 18px" }}>
     <div style={{ ...F.disp, fontSize: 34, color: color || C.navy, lineHeight: 1 }}>{valor}</div>
-    <div style={{ ...F.mono, fontSize: 9, letterSpacing: ".18em", color: C.tenue, textTransform: "uppercase", marginTop: 8 }}>{etiqueta}</div>
-    <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 3 }}>{nota}</div>
+    <div style={{ ...F.mono, fontSize: 10.5, letterSpacing: ".18em", color: C.tenue, textTransform: "uppercase", marginTop: 8 }}>{etiqueta}</div>
+    <div style={{ ...F.ui, fontSize: 12.5, color: C.apagado, marginTop: 3 }}>{nota}</div>
   </div>
 );
 
 const Chip = ({ children, color }) => (
-  <span style={{ ...F.mono, fontSize: 8.5, letterSpacing: ".14em", color, border: `1px solid ${color}44`, background: `${color}0F`, padding: "3px 6px", whiteSpace: "nowrap" }}>{children}</span>
+  <span style={{ ...F.mono, fontSize: 10, letterSpacing: ".14em", color, border: `1px solid ${color}44`, background: `${color}0F`, padding: "3px 6px", whiteSpace: "nowrap" }}>{children}</span>
 );
 
 const Enlace = ({ href, children }) => (
-  <a href={href} target="_blank" rel="noreferrer" style={{ ...F.mono, fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase",
+  <a href={href} target="_blank" rel="noreferrer" style={{ ...F.mono, fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase",
     color: C.tenue, textDecoration: "none", borderBottom: `1px solid ${C.linea}`, paddingBottom: 2 }}>{children} ↗</a>
 );
 
