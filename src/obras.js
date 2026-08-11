@@ -32,6 +32,13 @@ const desdeFila = (o, rol) => ({
    pero según la versión de PostgREST pueden llegar envueltas en un array. */
 const unaFila = (d) => (Array.isArray(d) ? d[0] : d);
 
+/* n8n abre la planilla y la carpeta de la obra por su ID, no por el enlace.
+   Se extrae acá, al guardar, y no allá: así el error ("ese enlace no es una
+   planilla") se ve en el momento en que alguien lo pega, y no a las 06:00
+   de la mañana siguiente cuando el agente de predicción no encuentra nada. */
+export const idPlanilla = (url) => (String(url || "").match(/\/spreadsheets\/d\/([A-Za-z0-9_-]+)/) || [])[1] || "";
+export const idCarpeta  = (url) => (String(url || "").match(/\/folders\/([A-Za-z0-9_-]+)/) || [])[1] || "";
+
 const mensaje = (error) => {
   const m = String(error?.message || "");
   if (m.includes("duplicate key") && m.includes("obras_obra_id")) return "Ya existe una obra con ese identificador.";
@@ -90,11 +97,20 @@ export async function unirseAObra(codigo) {
 
 /* ---------- administración (solo admin: lo impone RLS) ---------- */
 export async function guardarObra(obra) {
+  const sheet = idPlanilla(obra.linkPlanilla);
+  const carpeta = idCarpeta(obra.linkCarpeta);
+  if (obra.linkPlanilla && !sheet)
+    throw new Error("Ese enlace no parece una planilla de Google Sheets.");
+  if (obra.linkCarpeta && !carpeta)
+    throw new Error("Ese enlace no parece una carpeta de Google Drive.");
+
   const { error } = await supabase.from("obras").update({
     nombre: obra.nombre,
     base_n8n: obra.base,
     link_planilla: obra.linkPlanilla,
     link_carpeta: obra.linkCarpeta,
+    sheet_id: sheet,
+    carpeta_id: carpeta,
   }).eq("id", obra.id);
   if (error) throw new Error(mensaje(error));
 }

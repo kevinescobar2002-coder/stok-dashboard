@@ -24,10 +24,24 @@ create table if not exists public.obras (
   base_n8n      text not null default '',
   link_planilla text not null default '',
   link_carpeta  text not null default '',
+  -- Los IDs que n8n necesita para abrir la planilla y la carpeta de ESTA obra.
+  -- Se sacan del enlace al guardarlo: n8n no adivina documentos, los pregunta.
+  sheet_id      text not null default '',
+  carpeta_id    text not null default '',
   creada_por    uuid references auth.users(id) on delete set null,
   creada_en     timestamptz not null default now(),
   actualizado   timestamptz not null default now()
 );
+
+-- Para las obras creadas antes de que cada una tuviera su propia planilla.
+alter table public.obras add column if not exists sheet_id   text not null default '';
+alter table public.obras add column if not exists carpeta_id text not null default '';
+
+update public.obras
+   set sheet_id   = coalesce(substring(link_planilla from '/spreadsheets/d/([A-Za-z0-9_-]+)'), ''),
+       carpeta_id = coalesce(substring(link_carpeta  from '/folders/([A-Za-z0-9_-]+)'), '')
+ where (sheet_id = '' and link_planilla <> '')
+    or (carpeta_id = '' and link_carpeta <> '');
 
 -- ------------------------------------------------------------
 -- 2. MIEMBROS

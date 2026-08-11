@@ -1009,7 +1009,7 @@ function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrar
             {obra.obraId}
           </div>
           <div style={{ ...F.ui, fontSize: 11.5, color: C.apagado, marginTop: 5, lineHeight: 1.5 }}>
-            Fijo. Es la llave con que n8n separa las filas de esta obra en la planilla; cambiarla dejaría huérfano todo el inventario ya registrado.
+            Fijo. Es la llave con que n8n encuentra la planilla de esta obra; cambiarla dejaría huérfano todo el inventario ya registrado.
           </div>
         </div>
 
@@ -1017,14 +1017,14 @@ function Ajustes({ obra, aviso, guardarAjustes, nuevoCodigo, dejarObra, alEntrar
           onChange={(e) => setB({ ...b, base: e.target.value.trim() })}
           placeholder="https://tunombre.app.n8n.cloud"
           pista="Sin la barra final. De aquí cuelgan la lectura de la planilla, los dos agentes y el registro de compras." />
-        <Campo etiqueta="Enlace de la planilla (Google Sheets)" value={b.linkPlanilla} disabled={!admin}
+        <Campo etiqueta="Planilla de inventario de esta obra (Google Sheets)" value={b.linkPlanilla} disabled={!admin}
           onChange={(e) => setB({ ...b, linkPlanilla: e.target.value.trim() })}
           placeholder="https://docs.google.com/spreadsheets/d/…"
-          pista="Solo para abrirla desde el botón. Quien la lee es n8n." />
+          pista="Propia de esta obra: es la que n8n abre para leer y escribir su inventario. Compártela con la cuenta de Google que usa n8n." />
         <Campo etiqueta="Carpeta de programación de obra (Drive)" value={b.linkCarpeta} disabled={!admin}
           onChange={(e) => setB({ ...b, linkCarpeta: e.target.value.trim() })}
           placeholder="https://drive.google.com/drive/folders/…"
-          pista="El agente de predicción lee de aquí la carta Gantt más reciente." />
+          pista="El agente de predicción lee de aquí la carta Gantt más reciente de esta obra." />
 
         <div style={{ background: C.suave, padding: "12px 14px", ...F.ui, fontSize: 12.5, color: C.tenue, lineHeight: 1.6, margin: "4px 0 18px" }}>
           {obra.base
