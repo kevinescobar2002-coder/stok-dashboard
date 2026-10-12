@@ -20,52 +20,15 @@ import "./estilos.css";
    Lo que se ve está en Acceso.jsx, Panel.jsx y Ajustes.jsx.
    ============================================================ */
 
-/* ---------- datos de muestra: se usan solo si aún no hay n8n conectado ---------- */
-const MUESTRA = {
-  obra_id: "OBRA-001", actualizado: new Date().toISOString(), fecha: new Date().toISOString().slice(0, 10),
-  materiales: [
-    { material_id: "MAT-01", nombre: "Cemento 25 kg", categoria: "Áridos y cementos", zona: "bodega", unidad: "saco", stock: 1, minimo: 2, maximo: 12, proveedor: "Cementos Bío Bío", precio_ref: 5990, tag_registrado: true },
-    { material_id: "MAT-02", nombre: "Fierro estriado 12 mm", categoria: "Acero", zona: "bodega", unidad: "barra", stock: 3, minimo: 2, maximo: 20, proveedor: "CAP Acero", precio_ref: 8490, tag_registrado: true },
-    { material_id: "MAT-03", nombre: "Plancha OSB 11 mm", categoria: "Maderas", zona: "bodega", unidad: "plancha", stock: 2, minimo: 2, maximo: 15, proveedor: "LP Chile", precio_ref: 13990, tag_registrado: true },
-    { material_id: "MAT-04", nombre: "Ladrillo fiscal", categoria: "Albañilería", zona: "bodega", unidad: "pallet", stock: 2, minimo: 1, maximo: 8, proveedor: "Princesa", precio_ref: 45000, tag_registrado: true },
-    { material_id: "MAT-05", nombre: "Tubería PVC 110 mm", categoria: "Sanitario", zona: "bodega", unidad: "tira", stock: 3, minimo: 2, maximo: 10, proveedor: "Vinilit", precio_ref: 7290, tag_registrado: true },
-    { material_id: "MAT-06", nombre: "Cable THHN 2,5 mm²", categoria: "Eléctrico", zona: "bodega", unidad: "rollo", stock: 2, minimo: 2, maximo: 6, proveedor: "Cobrex", precio_ref: 38990, tag_registrado: true },
-    { material_id: "MAT-07", nombre: "Pintura látex 1 gl", categoria: "Terminaciones", zona: "bodega", unidad: "galón", stock: 3, minimo: 2, maximo: 12, proveedor: "Sipa", precio_ref: 15990, tag_registrado: true },
-    { material_id: "MAT-08", nombre: "Yeso cartón 15 mm", categoria: "Tabiquería", zona: "bodega", unidad: "plancha", stock: 2, minimo: 2, maximo: 18, proveedor: "Volcán", precio_ref: 9990, tag_registrado: true },
-    { material_id: "MAT-09", nombre: "Taladro percutor", categoria: "Herramientas", zona: "bodega", unidad: "unidad", stock: 0, minimo: 1, maximo: 2, proveedor: "Bosch", precio_ref: 89990, tag_registrado: true },
-    { material_id: "MAT-10", nombre: "Casco de seguridad", categoria: "EPP", zona: "bodega", unidad: "unidad", stock: 3, minimo: 2, maximo: 15, proveedor: "3M", precio_ref: 6490, tag_registrado: false },
-  ],
-  movimientos: [
-    { ts: new Date(Date.now() - 3e5).toISOString(), nombre: "Taladro percutor", direccion: "salida", delta: -1, stock: 0, lector: "LECTOR-1" },
-    { ts: new Date(Date.now() - 9e5).toISOString(), nombre: "Cemento 25 kg", direccion: "salida", delta: -1, stock: 1, lector: "LECTOR-1" },
-    { ts: new Date(Date.now() - 15e5).toISOString(), nombre: "Cemento 25 kg", direccion: "salida", delta: -1, stock: 2, lector: "LECTOR-1" },
-    { ts: new Date(Date.now() - 26e5).toISOString(), nombre: "Yeso cartón 15 mm", direccion: "entrada", delta: 1, stock: 2, lector: "LECTOR-1" },
-  ],
-  predicciones: [
-    { material_id: "MAT-09", nombre: "Taladro percutor", consumo_diario: 0.07, dias_para_quiebre: 0, urgencia: "alta", partida: "Instalación de tabiquería", razonamiento: "Sin unidades en bodega y la partida de tabiquería parte mañana." },
-    { material_id: "MAT-01", nombre: "Cemento 25 kg", consumo_diario: 0.5, dias_para_quiebre: 2, urgencia: "alta", partida: "Radier sector norte", razonamiento: "El radier del sector norte consume 6 sacos en tres días." },
-    { material_id: "MAT-06", nombre: "Cable THHN 2,5 mm²", consumo_diario: 0.21, dias_para_quiebre: 9, urgencia: "media", partida: "Canalización eléctrica piso 2", razonamiento: "Consumo estable; la canalización del piso 2 comienza en nueve días." },
-    { material_id: "MAT-03", nombre: "Plancha OSB 11 mm", consumo_diario: 0.14, dias_para_quiebre: 14, urgencia: "media", partida: "Encofrado losa", razonamiento: "Reposición programada alcanza si la losa no se adelanta." },
-    { material_id: "MAT-05", nombre: "Tubería PVC 110 mm", consumo_diario: 0.07, dias_para_quiebre: 42, urgencia: "baja", partida: "sin partida asociada", razonamiento: "Consumo bajo y sin partida sanitaria en el horizonte." },
-  ],
-  recomendaciones: [
-    { rec_id: "MAT-09-hoy", fecha: "hoy", material_id: "MAT-09", nombre: "Taladro percutor", cantidad_sugerida: 2, unidad: "unidad", proveedor: "Bosch", costo_estimado: 179980, motivo: "Bodega en cero y la partida de tabiquería parte mañana. Detiene la cuadrilla completa.", prioridad: "alta", estado: "pendiente" },
-    { rec_id: "MAT-01-hoy", fecha: "hoy", material_id: "MAT-01", nombre: "Cemento 25 kg", cantidad_sugerida: 11, unidad: "saco", proveedor: "Cementos Bío Bío", costo_estimado: 65890, motivo: "Quiebra en 2 días con el consumo del radier norte. Reponer al máximo.", prioridad: "alta", estado: "pendiente" },
-    { rec_id: "MAT-06-hoy", fecha: "hoy", material_id: "MAT-06", nombre: "Cable THHN 2,5 mm²", cantidad_sugerida: 4, unidad: "rollo", proveedor: "Cobrex", costo_estimado: 155960, motivo: "Alcanza justo hasta el inicio de la canalización del piso 2.", prioridad: "media", estado: "pendiente" },
-  ],
-  alertas: [
-    { alerta_id: "MAT-09-hoy", fecha: "hoy", nombre: "Taladro percutor", stock: 0, minimo: 1, mensaje: "3 materiales requieren compra inmediata: la tabiquería parte mañana.", correo_enviado: true, del_dia: true },
-    { alerta_id: "MAT-01-hoy", fecha: "hoy", nombre: "Cemento 25 kg", stock: 1, minimo: 2, mensaje: "Cemento bajo el mínimo (1/2).", correo_enviado: true, del_dia: true },
-  ],
-  lectores: [
-    { lector_id: "LECTOR-1", obra_id: "OBRA-001", zona: "bodega", activo: true, vinculado: true,
-      ultimo_latido: new Date(Date.now() - 3e5).toISOString(), descripcion: "Portal RC522 · entrada de bodega" },
-  ],
-  agentes: {
-    captura: { activo: true, ultimo: new Date(Date.now() - 3e5).toISOString(), lectores: 1 },
-    prediccion: { activo: true, ultimo: "hoy", total: 5 },
-    accion: { activo: true, ultimo: "hoy", pendientes: 3 },
-  },
+/* ---------- datos de demostración ----------
+   Una obra sin n8n muestra el inventario real de Casas Praderas de Curamonte
+   (corte al viernes 14 de agosto de 2026). Se carga aparte, solo cuando hace
+   falta, para que no pese en el sitio de las obras que ya están conectadas. */
+const cargarDemo = async () => {
+  const { default: d } = await import("./demo-curamonte.json");
+  /* El lector "late" ahora: la demo no debe verse desconectada. */
+  const latido = new Date(Date.now() - 3 * 60000).toISOString();
+  return { ...d, lectores: d.lectores.map((l) => ({ ...l, ultimo_latido: latido })) };
 };
 
 /* El tema se recuerda por navegador; la primera vez sigue al sistema. */
@@ -99,6 +62,9 @@ export default function App() {
   useEffect(() => { obraRef.current = obra; }, [obra]);
   const conexionRef = useRef(conexion);
   useEffect(() => { conexionRef.current = conexion; }, [conexion]);
+  /* Obra para la que ya se cargó la demo: el refresco de cada minuto no
+     debe pisar lo que se aprobó o editó mientras se recorre. */
+  const demoDe = useRef(null);
 
   /* Avisos: título corto y, si hace falta, una línea de detalle.
      Máximo tres en pantalla para que no tapen la bodega. */
@@ -150,6 +116,7 @@ export default function App() {
     if (!sesion || id === obraId) return;
     setObraId(id);
     setDatos(null);                 // nunca mostrar datos de la obra anterior
+    demoDe.current = null;
     setVistas([]);
     setConexion({ estado: "cambiando" });
     try { await fijarObraActiva(sesion.id, id); } catch { /* se reintenta al próximo cambio */ }
@@ -161,12 +128,19 @@ export default function App() {
   const traer = useCallback(async (avisar = false) => {
     const o = obraRef.current;
     if (!o) return;
+    const pedida = o.id;
     if (!o.base) {
-      setDatos(MUESTRA); setConexion({ estado: "demo" });
-      if (avisar) aviso("Modo demostración", "Ves datos de ejemplo hasta que configures n8n en Ajustes.", "info");
+      if (demoDe.current !== pedida) {
+        const demo = await cargarDemo();
+        if (obraRef.current?.id !== pedida) return;
+        demoDe.current = pedida;
+        setDatos(demo);
+      }
+      setConexion({ estado: "demo" });
+      if (avisar) aviso("Modo demostración", "Ves el inventario de ejemplo de Curamonte hasta que configures n8n en Ajustes.", "info");
       return;
     }
-    const pedida = o.id;
+    demoDe.current = null;
     try {
       const r = await fetch(url(`/webhook/stok/api/dashboard?obra_id=${encodeURIComponent(o.obraId)}`));
       if (!r.ok) throw new Error(r.status);
@@ -271,6 +245,7 @@ export default function App() {
   const dejarObra = async () => {
     const { id, nombre } = obraRef.current;
     await salirDeObra(id, sesion.id);
+    demoDe.current = null;
     setDatos(null);
     const lista = (obras || []).filter((o) => o.id !== id);
     setObras(lista);
@@ -281,7 +256,7 @@ export default function App() {
 
   const salir = async () => {
     await supabase.auth.signOut();
-    setSesion(null); setObras(null); setObraId(null); setDatos(null);
+    setSesion(null); setObras(null); setObraId(null); setDatos(null); demoDe.current = null;
   };
 
   const contenido = () => {
