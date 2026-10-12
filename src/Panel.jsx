@@ -6,7 +6,7 @@ import {
 import Ajustes from "./Ajustes";
 import {
   Boton, Ceja, Chip, Ico, Logo, Punto, TONO, Titulo, Vacio,
-  clp, estadoDe, fechaCorta, hora, num, plural, tonoUrgencia, useAncho,
+  cant, clp, estadoDe, fechaCorta, hora, num, plural, tonoUrgencia, useAncho,
 } from "./ui";
 
 /* ============================================================ PANEL
@@ -336,6 +336,15 @@ const Enlace = ({ href, children }) => (
 
 const seccion = (movil, order) => ({ order, padding: movil ? 16 : 20 });
 
+/* Una obra real trae decenas de proyecciones y compras: se muestran las más
+   urgentes (ya vienen ordenadas) y el resto queda a un clic. */
+const LIMITE = { proyeccion: 8, compras: 6 };
+const VerMas = ({ total, visibles, todas, setTodas, que }) => (total <= visibles && !todas ? null : (
+  <Boton variante="borde" tam="sm" ancho onClick={() => setTodas(!todas)} style={{ marginTop: 12 }}>
+    {todas ? "Ver menos" : `Ver las ${total} ${que}`}
+  </Boton>
+));
+
 /* ---------- mínimo editable: clic, escribir, Enter guarda, Esc cancela ---------- */
 function Minimo({ valor, nombre, onGuardar, aviso, movil }) {
   const [editando, setEditando] = useState(false);
@@ -346,14 +355,15 @@ function Minimo({ valor, nombre, onGuardar, aviso, movil }) {
   const guardar = () => {
     setEditando(false);
     if (v === String(valor)) return;
-    const n = Number(v);
-    if (!Number.isInteger(n) || n < 0) { setV(String(valor)); return aviso("Mínimo no válido", "Usa un número entero de 0 o más.", "alert"); }
+    /* Decimales permitidos: hay mínimos en m2, kg o m3. Vacío no es cero. */
+    const n = Number(String(v).replace(",", "."));
+    if (!String(v).trim() || !Number.isFinite(n) || n < 0) { setV(String(valor)); return aviso("Mínimo no válido", "Usa un número de 0 o más.", "alert"); }
     onGuardar(n);
   };
 
   if (editando) return (
     <div>
-      <input autoFocus type="number" min="0" inputMode="numeric" className="minimo__input" aria-label={`Nuevo mínimo de ${nombre}`}
+      <input autoFocus type="number" min="0" step="any" inputMode="decimal" className="minimo__input" aria-label={`Nuevo mínimo de ${nombre}`}
         value={v} onChange={(e) => setV(e.target.value)} onBlur={guardar} style={{ height: alto }}
         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setV(String(valor)); setEditando(false); } }} />
       {!movil && <div style={{ font: "400 11px var(--font-body)", color: "var(--p-ink2)", marginTop: 4, whiteSpace: "nowrap" }}>Enter guarda · Esc</div>}
@@ -361,8 +371,8 @@ function Minimo({ valor, nombre, onGuardar, aviso, movil }) {
   );
   return (
     <button type="button" className="minimo" onClick={() => setEditando(true)} title="Editar mínimo"
-      aria-label={`Editar mínimo de ${nombre}: ${valor}`} style={{ height: alto, padding: movil ? "0 12px" : "0 8px" }}>
-      {valor}<Ico de={Pencil} tam={movil ? 14 : 12} color="var(--p-ink2)" />
+      aria-label={`Editar mínimo de ${nombre}: ${cant(valor)}`} style={{ height: alto, padding: movil ? "0 12px" : "0 8px" }}>
+      {cant(valor)}<Ico de={Pencil} tam={movil ? 14 : 12} color="var(--p-ink2)" />
     </button>
   );
 }
@@ -452,7 +462,7 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
               <div style={{ display: "grid", gridTemplateColumns: "auto auto minmax(0,1fr)", gap: 16, alignItems: "end", marginTop: 10 }}>
                 <div>
                   <div style={{ font: "400 12px var(--font-body)", color: "var(--p-ink2)" }}>Stock</div>
-                  <span style={{ font: "800 26px/1 var(--font-display)", color: stockColor }}>{num(m.stock)}</span>
+                  <span style={{ font: "800 26px/1 var(--font-display)", color: stockColor }}>{cant(m.stock)}</span>
                   <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)", marginLeft: 4 }}>{m.unidad}</span>
                 </div>
                 <div>
@@ -492,7 +502,7 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
                       <div style={{ font: "400 12px/1.4 var(--font-mono)", color: "var(--p-ink2)", marginTop: 2 }}>{m.material_id} · {m.categoria}</div>
                     </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      <span style={{ font: "800 22px/1 var(--font-display)", color: stockColor }}>{num(m.stock)}</span>
+                      <span style={{ font: "800 22px/1 var(--font-display)", color: stockColor }}>{cant(m.stock)}</span>
                       <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)", marginLeft: 4 }}>{m.unidad}</span>
                     </td>
                     <td style={{ textAlign: "right", width: 96, paddingTop: 8, paddingBottom: 8 }}>
@@ -520,7 +530,9 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
 
 /* ---------- proyección de quiebres ---------- */
 function Proyeccion({ predicciones, cargando, movil }) {
+  const [todas, setTodas] = useState(false);
   const orden = [...predicciones].sort((a, b) => num(a.dias_para_quiebre) - num(b.dias_para_quiebre));
+  const visibles = todas ? orden : orden.slice(0, LIMITE.proyeccion);
   return (
     <section id="proyeccion" aria-label="Proyección de quiebres" className="tarjeta" style={{ ...seccion(movil, 5), scrollMarginTop: 80 }}>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "8px 16px", marginBottom: 8 }}>
@@ -532,7 +544,7 @@ function Proyeccion({ predicciones, cargando, movil }) {
           <div style={{ paddingTop: 12 }}>
             <Vacio titulo="Sin proyecciones todavía" texto="Pulsa «Recalcular predicción»: el agente leerá la programación de obra desde Drive." />
           </div>
-        ) : orden.map((p) => {
+        ) : (<>{visibles.map((p) => {
           const dias = num(p.dias_para_quiebre), t = TONO[tonoUrgencia(p.urgencia)];
           return (
             <div key={p.material_id} style={{ padding: "14px 0", borderTop: "1px solid var(--p-line)" }}>
@@ -552,15 +564,18 @@ function Proyeccion({ predicciones, cargando, movil }) {
             </div>
           );
         })}
+        <VerMas total={orden.length} visibles={visibles.length} todas={todas} setTodas={setTodas} que="proyecciones" /></>)}
     </section>
   );
 }
 
 /* ---------- compras recomendadas ---------- */
 function Compras({ recomendaciones, pendientes, monto, cargando, movil, resolverCompra }) {
+  const [todas, setTodas] = useState(false);
   const PR = { alta: 0, media: 1, baja: 2 };
   const orden = [...recomendaciones].sort((a, b) =>
     (a.estado === "pendiente" ? 0 : 1) - (b.estado === "pendiente" ? 0 : 1) || (PR[a.prioridad] ?? 3) - (PR[b.prioridad] ?? 3));
+  const visibles = todas ? orden : orden.slice(0, LIMITE.compras);
   return (
     <section id="compras" aria-label="Compras por decidir" className="tarjeta" style={{ ...seccion(movil, 3), scrollMarginTop: 80 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
@@ -571,7 +586,7 @@ function Compras({ recomendaciones, pendientes, monto, cargando, movil, resolver
         : orden.length === 0 ? <Vacio titulo="Nada que comprar" texto="Cuando un material caiga bajo el mínimo o esté por quebrar, la recomendación aparece aquí." />
         : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {orden.map((r) => {
+            {visibles.map((r) => {
               const t = TONO[tonoUrgencia(r.prioridad)], pendiente = r.estado === "pendiente", aprobada = r.estado === "aprobada";
               return (
                 <article key={r.rec_id} style={{ display: "flex", background: pendiente ? "var(--p-card)" : "var(--p-sunk)", border: "1px solid var(--p-line)",
@@ -601,6 +616,7 @@ function Compras({ recomendaciones, pendientes, monto, cargando, movil, resolver
                 </article>
               );
             })}
+            <VerMas total={orden.length} visibles={visibles.length} todas={todas} setTodas={setTodas} que="compras" />
           </div>
         )}
     </section>
@@ -623,11 +639,11 @@ function Movimientos({ movimientos, cargando, movil }) {
               const delta = num(mv.delta), entra = delta >= 0;
               return (
                 <li key={i} style={{ display: "grid", gridTemplateColumns: "44px minmax(0,1fr) auto", gap: 10, alignItems: "baseline", padding: "9px 0", borderTop: "1px solid var(--p-line)" }}>
-                  <span style={{ font: "600 15px var(--font-mono)", color: entra ? "var(--p-ok)" : "var(--p-ink)", textAlign: "right" }}>{entra ? "+" : "−"}{Math.abs(delta)}</span>
+                  <span style={{ font: "600 15px var(--font-mono)", color: entra ? "var(--p-ok)" : "var(--p-ink)", textAlign: "right" }}>{entra ? "+" : "−"}{cant(Math.abs(delta))}</span>
                   <span style={{ minWidth: 0 }}>
                     <span style={{ display: "block", font: "600 14px/1.3 var(--font-body)" }}>{mv.nombre}</span>
                     <span style={{ display: "block", font: "400 12px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>
-                      {mv.direccion === "entrada" ? "Entrada" : "Salida"} · queda {num(mv.stock)}{mv.lector ? ` · ${mv.lector}` : ""}
+                      {mv.direccion === "entrada" ? "Entrada" : "Salida"} · queda {cant(mv.stock)}{mv.lector ? ` · ${mv.lector}` : ""}
                     </span>
                   </span>
                   <span style={{ font: "400 12px var(--font-mono)", color: "var(--p-ink2)" }}>{hora(mv.ts)}</span>
@@ -689,7 +705,7 @@ function Alertas({ alertas, cargando, movil }) {
                 <Punto color={a.del_dia ? "var(--p-crit-bar)" : "var(--p-muted)"} style={{ marginTop: 6 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ font: "600 14px/1.3 var(--font-body)" }}>
-                    {a.nombre} <span style={{ font: "400 13px var(--font-mono)", color: "var(--p-ink2)" }}>({num(a.stock)}/{num(a.minimo)})</span>
+                    {a.nombre} <span style={{ font: "400 13px var(--font-mono)", color: "var(--p-ink2)" }}>({cant(a.stock)}/{cant(a.minimo)})</span>
                   </div>
                   <div style={{ font: "400 12px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>{fechaCorta(a.fecha)} · {a.correo_enviado ? "correo enviado" : "sin correo"}</div>
                 </div>

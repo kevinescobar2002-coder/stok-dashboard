@@ -22,8 +22,16 @@ export const fechaCorta = (f) => {
   return new Date(String(f).slice(0, 10) + "T12:00:00").toLocaleDateString("es-CL", { day: "numeric", month: "short" });
 };
 
-const PLURAL = { unidad: "unidades", saco: "sacos", rollo: "rollos", plancha: "planchas", "galón": "galones", barra: "barras", pallet: "pallets", tira: "tiras", par: "pares" };
-export const plural = (n, u = "") => `${num(n)} ${num(n) === 1 || !u ? u : PLURAL[u] || u + "s"}`.trim();
+/* Cantidades a la chilena: punto de miles y coma decimal ("1.278", "0,5"). */
+export const cant = (v) => num(v).toLocaleString("es-CL", { maximumFractionDigits: 2 });
+
+/* Solo se pluralizan las unidades que son palabras; "m2", "kg" o "m3" quedan igual. */
+const PLURAL = {
+  unidad: "unidades", saco: "sacos", rollo: "rollos", plancha: "planchas", "galón": "galones", barra: "barras", pallet: "pallets",
+  tira: "tiras", par: "pares", tineta: "tinetas", tambor: "tambores", pieza: "piezas", pomo: "pomos", juego: "juegos",
+  vivienda: "viviendas", global: "globales", caja: "cajas", tubo: "tubos",
+};
+export const plural = (n, u = "") => `${cant(n)} ${num(n) === 1 || !u ? u : PLURAL[u] || u}`.trim();
 
 /* ---------- estados ---------- */
 export const TONO = {
