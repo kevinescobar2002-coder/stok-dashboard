@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Copy, Lock, RefreshCw, X } from "lucide-react";
+import { Copy, FlaskConical, Lock, RefreshCw, X } from "lucide-react";
 import { unirseAObra } from "./obras";
 import { Boton, Campo, Ceja, Chip, Ico, Punto, Titulo } from "./ui";
 
@@ -7,7 +7,7 @@ import { Boton, Campo, Ceja, Chip, Ico, Punto, Titulo } from "./ui";
    La configuración es de la obra, no de la persona: la comparte todo el
    equipo. Por eso se guarda con un botón y solo la toca un administrador. */
 export default function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjustes, nuevoCodigo, dejarObra,
-  alEntrarAObra, soloUnaObra, cerrar, movil, conexion }) {
+  alEntrarAObra, soloUnaObra, cerrar, movil, conexion, demoPedida, cambiarDemo }) {
   const [b, setB] = useState(obra);
   const [ocupado, setOcupado] = useState(false);
   const [otroCodigo, setOtroCodigo] = useState("");
@@ -146,6 +146,22 @@ export default function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjuste
               <Punto color={`var(--p-${estadoCx[0]}-bar)`} style={{ marginTop: 6 }} /><span>{estadoCx[1]}</span>
             </div>
           </div>
+
+          {/* ── demo a pedido: solo tiene sentido si la obra ya está conectada ── */}
+          {obra.base && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Ceja>Datos de ejemplo</Ceja>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+                <span style={{ ...nota, flex: 1, minWidth: 220 }}>
+                  {demoPedida ? "Estás viendo el inventario de ejemplo de Condominio Los Maitenes. Nada se guarda ni se envía a n8n."
+                    : "Muestra el inventario de ejemplo de Condominio Los Maitenes solo en esta pestaña, sin tocar la configuración de la obra."}
+                </span>
+                <Boton variante="borde" tam="sm" icono={<Ico de={FlaskConical} />} onClick={() => cambiarDemo(!demoPedida)}>
+                  {demoPedida ? "Volver a mis datos" : "Ver datos de ejemplo"}
+                </Boton>
+              </div>
+            </div>
+          )}
 
           {/* ── las obras a las que ya entraste ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

@@ -66,6 +66,15 @@ export default function App() {
      debe pisar lo que se aprobó o editó mientras se recorre. */
   const demoDe = useRef(null);
 
+  /* Demo a pedido: una obra conectada también puede mirar los datos de
+     ejemplo. Vive solo en esta pestaña; la configuración de la obra no cambia. */
+  const [demoPedida, setDemoPedida] = useState(() => {
+    try { return sessionStorage.getItem("stok-demo") === "1"; } catch { return false; }
+  });
+  const demoPedidaRef = useRef(demoPedida);
+  /* Con la demo puesta nada puede salir hacia n8n: son datos inventados. */
+  const enDemo = () => !obraRef.current?.base || demoPedidaRef.current;
+
   /* Avisos: título corto y, si hace falta, una línea de detalle.
      Máximo tres en pantalla para que no tapen la bodega. */
   const aviso = useCallback((titulo, mensaje = "", estado = "ok") => {
@@ -129,7 +138,7 @@ export default function App() {
     const o = obraRef.current;
     if (!o) return;
     const pedida = o.id;
-    if (!o.base) {
+    if (enDemo()) {
       if (demoDe.current !== pedida) {
         const demo = await cargarDemo();
         if (obraRef.current?.id !== pedida) return;
@@ -137,7 +146,7 @@ export default function App() {
         setDatos(demo);
       }
       setConexion({ estado: "demo" });
-      if (avisar) aviso("Modo demostración", "Ves el inventario de ejemplo de Condominio Los Maitenes hasta que configures n8n en Ajustes.", "info");
+      if (avisar) aviso("Modo demostración", o.base ? "Ves datos de ejemplo; tu obra sigue conectada a n8n." : "Ves el inventario de ejemplo de Condominio Los Maitenes hasta que configures n8n en Ajustes.", "info");
       return;
     }
     demoDe.current = null;
@@ -160,6 +169,17 @@ export default function App() {
     }
   }, [aviso]);
 
+  const cambiarDemo = (activa) => {
+    demoPedidaRef.current = activa;
+    setDemoPedida(activa);
+    try { activa ? sessionStorage.setItem("stok-demo", "1") : sessionStorage.removeItem("stok-demo"); } catch { /* sin storage */ }
+    demoDe.current = null;
+    setDatos(null);
+    setVistas([]);
+    setConexion({ estado: "cargando" });
+    traer();
+  };
+
   useEffect(() => {
     if (!sesion || !obra) return;
     traer();
@@ -170,7 +190,7 @@ export default function App() {
   const llamarAgente = async (cual) => {
     const o = obraRef.current;
     const nombre = cual === "prediccion" ? "Predicción" : "Acción";
-    if (!o?.base) return aviso(`El agente de ${nombre} no corre en modo demostración`, "Configura la dirección de n8n en Ajustes.", "info");
+    if (enDemo()) return aviso(`El agente de ${nombre} no corre en modo demostración`, o?.base ? "Vuelve a tus datos para usar los agentes." : "Configura la dirección de n8n en Ajustes.", "info");
     aviso(`Agente de ${nombre} trabajando…`, "", "info");
     try {
       const r = await fetch(url(`/webhook/stok/agente/${cual}`), {
@@ -189,7 +209,7 @@ export default function App() {
     setDatos((d) => ({ ...d, materiales: d.materiales.map((m) => (m.material_id === material_id ? { ...m, [campo]: num(valor) } : m)) }));
     const o = obraRef.current;
     if (!previo) return;
-    if (!o?.base) return aviso("Mínimo actualizado", "Modo demostración: el cambio no se guarda.", "info");
+    if (enDemo()) return aviso("Mínimo actualizado", "Modo demostración: el cambio no se guarda.", "info");
     try {
       const r = await fetch(url("/webhook/stok/inventario"), {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -213,7 +233,7 @@ export default function App() {
     aviso(estado === "aprobada" ? "Compra aprobada" : "Recomendación descartada",
       estado === "aprobada" ? `${rec.nombre} · ${plural(rec.cantidad_sugerida, rec.unidad)}` : rec.nombre, estado === "aprobada" ? "ok" : "info");
     const o = obraRef.current;
-    if (!o?.base) return;
+    if (enDemo()) return;
     try {
       const r = await fetch(url("/webhook/stok/recomendacion"), {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -275,7 +295,7 @@ export default function App() {
     return (
       <Panel {...{ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso, traer,
         llamarAgente, guardarMinimo, resolverCompra, vistas, setVistas,
-        guardarAjustes, nuevoCodigo, dejarObra, tema,
+        guardarAjustes, nuevoCodigo, dejarObra, tema, demoPedida, cambiarDemo,
         cambiarTema: () => setTema((t) => (t === "oscuro" ? "claro" : "oscuro")),
         alEntrarAObra: (nueva) => refrescarObras(sesion.id, nueva.id) }} />
     );

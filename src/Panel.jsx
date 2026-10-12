@@ -28,7 +28,7 @@ const CONEXION = {
 
 export default function Panel(props) {
   const { sesion, salir, datos, obra, obras, cambiarObra, conexion, traer, llamarAgente, guardarMinimo, resolverCompra,
-    vistas, setVistas, aviso, tema, cambiarTema } = props;
+    vistas, setVistas, aviso, tema, cambiarTema, demoPedida, cambiarDemo } = props;
   const w = useAncho();
   const movil = w < 760, tablet = w < 1200;
   const oscuro = tema === "oscuro";
@@ -160,15 +160,23 @@ export default function Panel(props) {
 
       <main style={{ display: "flex", flexDirection: "column", gap: movil ? 16 : 20, padding: movil ? "16px 12px 96px" : "24px 24px 48px", maxWidth: 1440, margin: "0 auto" }}>
         {/* ── aviso de estado: demostración o sin conexión ── */}
-        {(conexion.estado === "demo" || offline) && (
-          <Aviso tono={offline ? "crit" : "warn"} icono={offline ? WifiOff : FlaskConical}
-            titulo={offline ? `Sin conexión con n8n${conexion.desde ? " desde las " + conexion.desde : ""}` : "Modo demostración"}
-            texto={offline
-              ? (datos ? "Ves la última lectura guardada. Las compras no se pueden aprobar hasta que vuelva la conexión." : "No pudimos leer la planilla de la obra. Revisa la dirección en Ajustes.")
-              : "Esta obra aún no tiene n8n configurado. Ves el inventario de ejemplo de Condominio Los Maitenes (corte al 14 de agosto); nada se guarda ni se envía."}
-            accion={offline ? "Reintentar" : admin ? "Configurar n8n" : null}
-            onAccion={offline ? () => traer(true) : abrirAjustes} />
+        {offline && (
+          <Aviso tono="crit" icono={WifiOff}
+            titulo={`Sin conexión con n8n${conexion.desde ? " desde las " + conexion.desde : ""}`}
+            texto={datos ? "Ves la última lectura guardada. Las compras no se pueden aprobar hasta que vuelva la conexión."
+              : "No pudimos leer la planilla de la obra. Revisa la dirección en Ajustes, o mira cómo funciona con datos de ejemplo."}
+            accion="Reintentar" onAccion={() => traer(true)}
+            accion2="Ver datos de ejemplo" onAccion2={() => cambiarDemo(true)} />
         )}
+        {conexion.estado === "demo" && (demoPedida && obra.base ? (
+          <Aviso tono="warn" icono={FlaskConical} titulo="Estás viendo datos de ejemplo"
+            texto="Inventario de ejemplo de Condominio Los Maitenes (corte al 14 de agosto). Tu obra sigue conectada a n8n; mientras miras la demo nada se guarda ni se envía."
+            accion="Volver a mis datos" onAccion={() => cambiarDemo(false)} />
+        ) : (
+          <Aviso tono="warn" icono={FlaskConical} titulo="Modo demostración"
+            texto="Esta obra aún no tiene n8n configurado. Ves el inventario de ejemplo de Condominio Los Maitenes (corte al 14 de agosto); nada se guarda ni se envía."
+            accion={admin ? "Configurar n8n" : null} onAccion={abrirAjustes} />
+        ))}
 
         {/* ── alerta del día ── */}
         {alertaViva && (
@@ -220,7 +228,8 @@ export default function Panel(props) {
         <div style={movil ? { display: "flex", flexDirection: "column", gap: 16 }
           : { display: "grid", gridTemplateColumns: tablet ? "minmax(0,1.5fr) minmax(0,1fr)" : "minmax(0,1.7fr) minmax(0,1fr)", gap: 20, alignItems: "start" }}>
           <div style={movil ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
-            <Bodega {...{ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso }} />
+            <Bodega {...{ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso }}
+              verDemo={conexion.estado === "demo" ? null : () => cambiarDemo(true)} />
             <Proyeccion predicciones={d.predicciones} cargando={cargando} movil={movil} />
           </div>
           <div style={movil ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
@@ -237,6 +246,7 @@ export default function Panel(props) {
 
       {verAjustes && (
         <Ajustes obra={obra} obras={obras || []} cambiarObra={cambiarObra} aviso={aviso} movil={movil} conexion={conexion}
+          demoPedida={demoPedida} cambiarDemo={(v) => { setVerAjustes(false); cambiarDemo(v); }}
           guardarAjustes={props.guardarAjustes} nuevoCodigo={props.nuevoCodigo}
           dejarObra={props.dejarObra} alEntrarAObra={props.alEntrarAObra} soloUnaObra={(obras || []).length <= 1}
           cerrar={() => { setVerAjustes(false); traer(); }} />
@@ -296,7 +306,7 @@ function SelectorObra({ obra, obras, abierto, setAbierto, cambiarObra, abrirAjus
   );
 }
 
-function Aviso({ tono, icono, titulo, texto, accion, onAccion }) {
+function Aviso({ tono, icono, titulo, texto, accion, onAccion, accion2, onAccion2 }) {
   const t = TONO[tono];
   return (
     <div role="status" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, padding: "12px 16px", background: t.bg,
@@ -306,7 +316,10 @@ function Aviso({ tono, icono, titulo, texto, accion, onAccion }) {
         <span style={{ font: "600 15px/1.3 var(--font-body)" }}>{titulo}</span>
         <span style={{ font: "400 14px/1.45 var(--font-body)", color: "var(--p-ink2)" }}>{texto}</span>
       </div>
-      {accion && <Boton variante="borde" tam="sm" onClick={onAccion}>{accion}</Boton>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {accion2 && <Boton variante="fantasma" tam="sm" onClick={onAccion2}>{accion2}</Boton>}
+        {accion && <Boton variante="borde" tam="sm" onClick={onAccion}>{accion}</Boton>}
+      </div>
     </div>
   );
 }
@@ -383,7 +396,7 @@ const SinTag = () => (
 );
 
 /* ---------- bodega ---------- */
-function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso }) {
+function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso, verDemo }) {
   const padX = movil ? 16 : 20;
   const filtros = [["todos", "Todos", null], ["critico", "Bajo mínimo", "var(--p-crit-bar)"], ["pronto", "Reponer", "var(--p-warn-bar)"], ["ok", "OK", "var(--p-ok-bar)"]];
 
@@ -440,6 +453,11 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
         <div style={{ borderTop: "1px solid var(--p-line)" }}>
           <Vacio centrado icono={PackageOpen} titulo="La bodega aún no responde"
             texto="Configura la dirección de n8n en Ajustes. El inventario se lee solo desde la planilla de la obra." />
+          {verDemo && (
+            <div style={{ display: "flex", justifyContent: "center", paddingBottom: 40, marginTop: -24 }}>
+              <Boton variante="borde" tam="sm" onClick={verDemo} icono={<Ico de={FlaskConical} />}>Ver datos de ejemplo</Boton>
+            </div>
+          )}
         </div>
       ) : lista.length === 0 ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "40px 24px", borderTop: "1px solid var(--p-line)", textAlign: "center" }}>
