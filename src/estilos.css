@@ -1,0 +1,178 @@
+/* ============================================================
+   STOK · Sistema de diseño de la sala de control
+   Marino manda, el naranja señala: una sola cosa naranja por zona.
+   Los colores del panel viven en variables --p-* para que el modo
+   oscuro sea solo cambiar de clase, no reescribir componentes.
+   ============================================================ */
+
+:root {
+  --font-display: 'League Spartan', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Archivo', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+
+  --stok-marino: #0A1450;
+  --stok-marino-2: #131F66;
+  --stok-marino-deep: #070B2E;
+  --stok-niebla: #F3F4F9;
+  --stok-signal: #F5620F;
+  --stok-signal-hover: #DD560B;
+  --stok-signal-ink: #C44D08;
+  --stok-signal-tint: #FDEBDF;
+  --stok-mist-2: #B9C1D6;
+  --stok-border-dark: #2C3A86;
+  --stok-alert: #B8323A;
+  --stok-alert-bar: #DA4549;
+
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+.tema-claro {
+  --p-page: #F3F4F9; --p-card: #FFFFFF; --p-sunk: #F7F8FB; --p-line: #DDE1EC;
+  --p-ink: #0A1450; --p-ink2: #4A5378; --p-muted: #8A93AD; --p-outline: #0A1450;
+  --p-crit: #B8323A; --p-crit-bar: #DA4549; --p-crit-tint: #FBE7E8; --p-crit-row: #FDF6F6;
+  --p-warn: #8E5C16; --p-warn-bar: #B97921; --p-warn-tint: #F7EEDF;
+  --p-ok: #0B7F57; --p-ok-bar: #10A06F; --p-ok-tint: #E2F4EC;
+  --p-signal: #C44D08; --p-signal-tint: #FDEBDF;
+  --p-track: #ECEEF4; --p-banner: #0A1450; --p-hover: #F3F4F9;
+  color-scheme: light;
+}
+
+.tema-oscuro {
+  --p-page: #070B2E; --p-card: #0E1650; --p-sunk: #0A1245; --p-line: #2C3A86;
+  --p-ink: #F3F4F9; --p-ink2: #B9C1D6; --p-muted: #8A93AD; --p-outline: #B9C1D6;
+  --p-crit: #FF9A93; --p-crit-bar: #E5565A; --p-crit-tint: rgba(218, 69, 73, .18); --p-crit-row: rgba(218, 69, 73, .07);
+  --p-warn: #F0BE6E; --p-warn-bar: #D29A3A; --p-warn-tint: rgba(185, 121, 33, .22);
+  --p-ok: #7DDBAE; --p-ok-bar: #21B57F; --p-ok-tint: rgba(16, 160, 111, .2);
+  --p-signal: #FF8A4C; --p-signal-tint: rgba(245, 98, 15, .16);
+  --p-track: #1A2670; --p-banner: #131F66; --p-hover: #16226E;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--stok-niebla); }
+input, select, button, textarea { font: inherit; }
+::selection { background: var(--stok-signal); color: #fff; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--p-line, #DDE1EC); border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--stok-signal); outline-offset: 2px; }
+
+.stok {
+  min-height: 100vh;
+  background: var(--p-page);
+  color: var(--p-ink);
+  font-family: var(--font-body);
+}
+
+.tema-claro .solo-oscuro, .tema-oscuro .solo-claro { display: none !important; }
+
+/* Avisos abajo a la derecha; en el celular, de borde a borde. */
+.avisos { position: fixed; right: 24px; bottom: 16px; z-index: 60; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+@media (max-width: 759px) {
+  .avisos { left: 12px; right: 12px; }
+  .avisos > * { width: 100%; }
+}
+
+.stok a { color: var(--p-signal); text-decoration: underline; text-underline-offset: 3px; }
+.stok a:hover { color: var(--p-ink); }
+
+/* ---------- botones ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 44px; padding: 0 20px;
+  font: 600 15px var(--font-body); letter-spacing: .01em; white-space: nowrap;
+  border: 1px solid transparent; border-radius: 2px; cursor: pointer;
+  transition: background 120ms var(--ease), border-color 120ms var(--ease);
+}
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn--sm { height: 36px; padding: 0 14px; font-size: 14px; }
+.btn--lg { height: 56px; padding: 0 28px; font-size: 17px; }
+.btn--ancho { width: 100%; }
+
+.btn--primario { background: var(--stok-signal); color: var(--stok-marino); }
+.btn--primario:hover:not(:disabled) { background: var(--stok-signal-hover); }
+.btn--secundario { background: var(--stok-marino); color: var(--stok-niebla); }
+.btn--secundario:hover:not(:disabled) { background: var(--stok-marino-2); }
+.tema-oscuro .btn--secundario { background: var(--stok-niebla); color: var(--stok-marino); }
+.btn--borde { background: transparent; color: var(--p-ink); border-color: var(--p-outline); }
+.btn--borde:hover:not(:disabled) { background: var(--p-hover); }
+.btn--fantasma { background: transparent; color: var(--p-ink); }
+.btn--fantasma:hover:not(:disabled) { background: var(--p-hover); }
+/* Sobre el banner marino, que es oscuro en los dos temas. */
+.btn--sobre-marino { background: transparent; color: var(--stok-niebla); border-color: var(--stok-mist-2); }
+.btn--sobre-marino:hover:not(:disabled) { background: var(--stok-marino-2); }
+.btn--peligro { background: transparent; color: var(--p-crit); border-color: var(--p-crit); }
+.btn--peligro:hover:not(:disabled) { background: var(--p-crit-tint); }
+
+/* Botón plano (íconos de cabecera, filas del selector, enlaces-botón). */
+.plano {
+  display: flex; align-items: center; gap: 8px;
+  background: transparent; border: 0; border-radius: 2px; cursor: pointer;
+  color: var(--p-ink); text-align: left;
+}
+.plano:hover:not(:disabled) { background: var(--p-hover); }
+.plano:disabled { cursor: default; }
+
+/* ---------- campos ---------- */
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo__etiqueta { font: 600 14px var(--font-body); color: var(--p-ink); }
+.campo__input {
+  height: 44px; width: 100%; padding: 0 14px;
+  font: 400 15px var(--font-body); color: var(--p-ink);
+  background: var(--p-card); border: 1px solid var(--p-line); border-radius: 2px; outline: none;
+  transition: border-color 120ms var(--ease), box-shadow 120ms var(--ease);
+}
+.campo__input::placeholder { color: var(--p-muted); }
+.campo__input:focus { border-color: var(--p-outline); box-shadow: 0 0 0 2px var(--p-signal-tint); }
+.campo__input:disabled { background: var(--p-sunk); color: var(--p-ink2); cursor: not-allowed; }
+.campo__input--error, .campo__input--error:focus { border-color: var(--p-crit-bar); }
+.campo__pista { font: 400 13px/1.45 var(--font-body); color: var(--p-ink2); }
+.campo__pista--error { color: var(--p-crit); }
+
+/* ---------- piezas del panel ---------- */
+.tarjeta { background: var(--p-card); border: 1px solid var(--p-line); border-radius: 6px; min-width: 0; }
+
+.kpi {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0;
+  border-radius: 6px; cursor: pointer; text-align: left; color: var(--p-ink);
+  transition: border-color 120ms var(--ease);
+}
+.kpi:hover { border-color: var(--p-ink2) !important; }
+
+.minimo {
+  display: inline-flex; align-items: center; gap: 6px; padding: 0 8px;
+  background: transparent; border: 1px dashed var(--p-line); border-radius: 2px; cursor: pointer;
+  font: 600 15px var(--font-mono); color: var(--p-ink);
+}
+.minimo:hover { border-color: var(--p-ink2); background: var(--p-hover); }
+.minimo__input {
+  width: 72px; padding: 0 8px; text-align: right;
+  font: 600 15px var(--font-mono); color: var(--p-ink);
+  background: var(--p-card); border: 1px solid var(--stok-signal); border-radius: 2px; outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 98, 15, .2);
+}
+
+.tabla { width: 100%; border-collapse: collapse; font-family: var(--font-body); color: var(--p-ink); }
+.tabla th {
+  position: sticky; top: 0; z-index: 1; background: var(--p-sunk);
+  padding: 10px 12px; font: 600 12px var(--font-body); color: var(--p-ink2);
+  border-bottom: 1px solid var(--p-line); text-align: left;
+}
+.tabla td { padding: 12px; vertical-align: middle; border-bottom: 1px solid var(--p-line); }
+.tabla th:first-child, .tabla td:first-child { padding-left: 20px; }
+.tabla th:last-child, .tabla td:last-child { padding-right: 20px; }
+
+.esqueleto { background: var(--p-track); border-radius: 2px; animation: respira 1.4s ease-in-out infinite; }
+
+/* ---------- animaciones ---------- */
+@keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(16, 160, 111, .55); } 70% { box-shadow: 0 0 0 6px rgba(16, 160, 111, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 160, 111, 0); } }
+@keyframes escaneo { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+@keyframes entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes respira { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+.pulso { animation: pulso 2s infinite; }
+.entra { animation: entra 200ms var(--ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
