@@ -66,10 +66,11 @@ export default function App() {
      debe pisar lo que se aprobó o editó mientras se recorre. */
   const demoDe = useRef(null);
 
-  /* Demo a pedido: una obra conectada también puede mirar los datos de
-     ejemplo. Vive solo en esta pestaña; la configuración de la obra no cambia. */
+  /* El dashboard abre siempre con los datos de ejemplo, también en obras
+     conectadas. "Volver a mis datos" vale para esta pestaña; al abrir de nuevo
+     vuelve la demo. La configuración de la obra no cambia en ningún caso. */
   const [demoPedida, setDemoPedida] = useState(() => {
-    try { return sessionStorage.getItem("stok-demo") === "1"; } catch { return false; }
+    try { return sessionStorage.getItem("stok-demo") !== "0"; } catch { return true; }
   });
   const demoPedidaRef = useRef(demoPedida);
   /* Con la demo puesta nada puede salir hacia n8n: son datos inventados. */
@@ -172,7 +173,7 @@ export default function App() {
   const cambiarDemo = (activa) => {
     demoPedidaRef.current = activa;
     setDemoPedida(activa);
-    try { activa ? sessionStorage.setItem("stok-demo", "1") : sessionStorage.removeItem("stok-demo"); } catch { /* sin storage */ }
+    try { sessionStorage.setItem("stok-demo", activa ? "1" : "0"); } catch { /* sin storage */ }
     demoDe.current = null;
     setDatos(null);
     setVistas([]);
