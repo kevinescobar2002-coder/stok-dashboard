@@ -21,11 +21,11 @@ import "./estilos.css";
    ============================================================ */
 
 /* ---------- datos de demostración ----------
-   Una obra sin n8n muestra el inventario real de Casas Praderas de Curamonte
+   Una obra sin n8n muestra el inventario de ejemplo de Condominio Los Maitenes
    (corte al viernes 14 de agosto de 2026). Se carga aparte, solo cuando hace
    falta, para que no pese en el sitio de las obras que ya están conectadas. */
 const cargarDemo = async () => {
-  const { default: d } = await import("./demo-curamonte.json");
+  const { default: d } = await import("./demo-obra.json");
   /* El lector "late" ahora: la demo no debe verse desconectada. */
   const latido = new Date(Date.now() - 3 * 60000).toISOString();
   return { ...d, lectores: d.lectores.map((l) => ({ ...l, ultimo_latido: latido })) };
@@ -137,7 +137,7 @@ export default function App() {
         setDatos(demo);
       }
       setConexion({ estado: "demo" });
-      if (avisar) aviso("Modo demostración", "Ves el inventario de ejemplo de Curamonte hasta que configures n8n en Ajustes.", "info");
+      if (avisar) aviso("Modo demostración", "Ves el inventario de ejemplo de Condominio Los Maitenes hasta que configures n8n en Ajustes.", "info");
       return;
     }
     demoDe.current = null;

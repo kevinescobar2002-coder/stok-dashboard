@@ -165,7 +165,7 @@ export default function Panel(props) {
             titulo={offline ? `Sin conexión con n8n${conexion.desde ? " desde las " + conexion.desde : ""}` : "Modo demostración"}
             texto={offline
               ? (datos ? "Ves la última lectura guardada. Las compras no se pueden aprobar hasta que vuelva la conexión." : "No pudimos leer la planilla de la obra. Revisa la dirección en Ajustes.")
-              : "Esta obra aún no tiene n8n configurado. Ves el inventario real de Casas Praderas de Curamonte (corte al 14 de agosto); nada se guarda ni se envía."}
+              : "Esta obra aún no tiene n8n configurado. Ves el inventario de ejemplo de Condominio Los Maitenes (corte al 14 de agosto); nada se guarda ni se envía."}
             accion={offline ? "Reintentar" : admin ? "Configurar n8n" : null}
             onAccion={offline ? () => traer(true) : abrirAjustes} />
         )}
