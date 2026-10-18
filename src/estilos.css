@@ -165,6 +165,44 @@ input, select, button, textarea { font: inherit; }
 
 .esqueleto { background: var(--p-track); border-radius: 2px; animation: respira 1.4s ease-in-out infinite; }
 
+/* ---------- intro del pitch ---------- */
+.intro {
+  position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 32px 20px; overflow: hidden; cursor: pointer; color: var(--stok-niebla);
+  background: radial-gradient(ellipse at 50% 38%, #16227A 0%, var(--stok-marino) 55%, var(--stok-marino-deep) 100%);
+  transition: opacity 600ms var(--ease);
+}
+.intro--sale { opacity: 0; pointer-events: none; }
+.intro__centro { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 22px; max-width: 900px; }
+.intro__marca { position: relative; display: grid; place-items: center; width: 280px; height: 170px; }
+.intro__logo { position: relative; height: 92px; width: auto; animation: intro-logo 900ms var(--ease) both; }
+.intro__onda {
+  position: absolute; left: 50%; top: 50%; width: 150px; height: 150px; margin: -75px 0 0 -75px;
+  border: 2px solid var(--stok-signal); border-radius: 9999px; opacity: 0;
+  animation: intro-onda 2.2s var(--ease) var(--retraso, 0s) infinite;
+}
+.intro__ceja { font: 400 13px/1 var(--font-mono); letter-spacing: .22em; text-transform: uppercase; color: var(--stok-signal); }
+.intro__frase {
+  display: flex; flex-direction: column; gap: 4px; margin: 0;
+  font: 800 clamp(30px, min(7vw, 8.5vh), 76px)/.95 var(--font-display); text-transform: uppercase; letter-spacing: -.01em;
+}
+.intro__naranja { color: var(--stok-signal); }
+.intro__lema { margin: 0; font: 400 clamp(16px, 2.2vw, 21px)/1.4 var(--font-body); color: var(--stok-mist-2); }
+.intro__aparece { display: block; animation: intro-sube 700ms var(--ease) var(--retraso, 0s) both; }
+.intro__pie { position: absolute; left: 0; right: 0; bottom: 32px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.intro__barra { width: min(320px, 70vw); height: 3px; background: rgba(245, 98, 15, .18); overflow: hidden; }
+.intro__barra span { display: block; height: 100%; background: var(--stok-signal); transform-origin: left; animation: intro-barra var(--dur, 4200ms) linear both; }
+.intro__saltar {
+  background: transparent; border: 0; cursor: pointer; padding: 10px 14px; min-height: 44px;
+  font: 600 14px var(--font-body); color: var(--stok-mist-2);
+}
+.intro__saltar:hover { color: #fff; }
+
+@keyframes intro-logo { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
+@keyframes intro-onda { 0% { opacity: .75; transform: scale(.55); } 100% { opacity: 0; transform: scale(2.3); } }
+@keyframes intro-sube { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes intro-barra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
 /* ---------- animaciones ---------- */
 @keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(16, 160, 111, .55); } 70% { box-shadow: 0 0 0 6px rgba(16, 160, 111, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 160, 111, 0); } }
 @keyframes escaneo { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
@@ -175,4 +213,10 @@ input, select, button, textarea { font: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* La portada del pitch se anima igual (ver Intro.jsx). */
+  .intro { transition: opacity 600ms var(--ease) !important; }
+  .intro .intro__logo { animation: intro-logo 900ms var(--ease) both !important; }
+  .intro .intro__onda { animation: intro-onda 2.2s var(--ease) var(--retraso, 0s) infinite !important; }
+  .intro .intro__aparece { animation: intro-sube 700ms var(--ease) var(--retraso, 0s) both !important; }
+  .intro .intro__barra span { animation: intro-barra var(--dur, 4200ms) linear both !important; }
 }

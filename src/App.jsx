@@ -5,6 +5,7 @@ import {
 } from "./obras";
 import { Acceso, Bienvenida, Aviso, Cargando } from "./Acceso";
 import Panel from "./Panel";
+import Intro from "./Intro";
 import { Toast, ahora, num, plural } from "./ui";
 import "./estilos.css";
 
@@ -31,6 +32,17 @@ const cargarDemo = async () => {
   return { ...d, lectores: d.lectores.map((l) => ({ ...l, ultimo_latido: latido })) };
 };
 
+/* ---------- modo pitch ----------
+   Para presentar STOK: sin inicio de sesión, una portada animada y directo a
+   la sala de control con los datos de ejemplo. Nada sale a Supabase ni a n8n.
+   El acceso real sigue en la misma dirección con ?entrar al final. */
+const PITCH = !new URLSearchParams(window.location.search).has("entrar");
+const SESION_PITCH = { id: "pitch", email: "", nombre: "Jefe de Terreno" };
+const OBRA_PITCH = {
+  id: "pitch", nombre: "Condominio Los Maitenes", obraId: "MAITENES", codigo: "STOK-M4T3NS",
+  base: "", linkPlanilla: "", linkCarpeta: "", rol: "admin",
+};
+
 /* El tema se recuerda por navegador; la primera vez sigue al sistema. */
 const temaInicial = () => {
   try { const t = localStorage.getItem("stok-tema"); if (t === "claro" || t === "oscuro") return t; } catch { /* sin storage */ }
@@ -49,6 +61,7 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [vistas, setVistas] = useState([]); // alertas ya descartadas en pantalla
   const [tema, setTema] = useState(temaInicial);
+  const [intro, setIntro] = useState(PITCH);
 
   useEffect(() => {
     try { localStorage.setItem("stok-tema", tema); } catch { /* sin storage */ }
@@ -104,6 +117,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (PITCH) {
+      setSesion(SESION_PITCH); setObras([OBRA_PITCH]); setObraId(OBRA_PITCH.id); setCargando(false);
+      return;
+    }
     const entrar = async (u) => {
       setSesion({ id: u.id, email: u.email, nombre: u.user_metadata?.nombre || u.email });
       await refrescarObras(u.id);
@@ -145,6 +162,15 @@ export default function App() {
         if (obraRef.current?.id !== pedida) return;
         demoDe.current = pedida;
         setDatos(demo);
+      }
+      /* En el pitch la obra se presenta como conectada: sin avisos de demo. */
+      if (PITCH) {
+        setConexion({ estado: "en_linea", hora: ahora() });
+        if (avisar) {
+          const { materiales } = await cargarDemo();
+          aviso("Bodega actualizada", `Planilla leída a las ${ahora()} · ${materiales.length} materiales.`);
+        }
+        return;
       }
       setConexion({ estado: "demo" });
       if (avisar) aviso("Modo demostración", o.base ? "Ves datos de ejemplo; tu obra sigue conectada a n8n." : "Ves el inventario de ejemplo de Condominio Los Maitenes hasta que configures n8n en Ajustes.", "info");
@@ -191,6 +217,15 @@ export default function App() {
   const llamarAgente = async (cual) => {
     const o = obraRef.current;
     const nombre = cual === "prediccion" ? "Predicción" : "Acción";
+    /* En el pitch el agente "trabaja" igual que en una obra conectada. */
+    if (PITCH) {
+      aviso(`Agente de ${nombre} trabajando…`, "", "info");
+      const pendientes = (datos?.recomendaciones || []).filter((r) => r.estado === "pendiente").length;
+      setTimeout(() => aviso(cual === "prediccion" ? "Predicción recalculada" : "Revisión de compras lista",
+        cual === "prediccion" ? `${(datos?.predicciones || []).length} proyecciones contra la programación de obra.`
+          : `${pendientes} compras por decidir. El correo a jefatura ya salió.`), 1400);
+      return;
+    }
     if (enDemo()) return aviso(`El agente de ${nombre} no corre en modo demostración`, o?.base ? "Vuelve a tus datos para usar los agentes." : "Configura la dirección de n8n en Ajustes.", "info");
     aviso(`Agente de ${nombre} trabajando…`, "", "info");
     try {
@@ -210,6 +245,7 @@ export default function App() {
     setDatos((d) => ({ ...d, materiales: d.materiales.map((m) => (m.material_id === material_id ? { ...m, [campo]: num(valor) } : m)) }));
     const o = obraRef.current;
     if (!previo) return;
+    if (PITCH) return aviso("Mínimo actualizado", `${previo.nombre} · mínimo ${num(valor)}.`);
     if (enDemo()) return aviso("Mínimo actualizado", "Modo demostración: el cambio no se guarda.", "info");
     try {
       const r = await fetch(url("/webhook/stok/inventario"), {
@@ -251,13 +287,13 @@ export default function App() {
   /* Ajustes de la obra: los guarda un botón, no cada tecla. La configuración
      es compartida por todo el equipo, así que no conviene ir escribiéndola sola. */
   const guardarAjustes = async (borrador) => {
-    await guardarObra(borrador);
+    if (!PITCH) await guardarObra(borrador);
     setObras((lista) => (lista || []).map((o) => (o.id === borrador.id ? { ...o, ...borrador } : o)));
     aviso("Ajustes guardados", `${borrador.nombre} · ${borrador.obraId}`);
   };
 
   const nuevoCodigo = async () => {
-    const c = await rotarCodigo(obraRef.current.id);
+    const c = PITCH ? "STOK-" + Math.random().toString(36).slice(2, 8).toUpperCase() : await rotarCodigo(obraRef.current.id);
     setObras((lista) => (lista || []).map((o) => (o.id === obraRef.current.id ? { ...o, codigo: c } : o)));
     aviso(`Código nuevo: ${c}`, "El anterior ya no sirve para entrar.", "info");
     return c;
@@ -276,6 +312,8 @@ export default function App() {
   };
 
   const salir = async () => {
+    /* En el pitch "Salir" vuelve a la portada, con los datos como al inicio. */
+    if (PITCH) { window.location.reload(); return; }
     await supabase.auth.signOut();
     setSesion(null); setObras(null); setObraId(null); setDatos(null); demoDe.current = null;
   };
@@ -305,6 +343,7 @@ export default function App() {
   return (
     <div className={`stok tema-${tema}`}>
       {contenido()}
+      {intro && <Intro alTerminar={() => setIntro(false)} />}
       <div className="avisos" aria-live="polite">
         {toasts.map((t) => (
           <Toast key={t.id} titulo={t.titulo} mensaje={t.mensaje} estado={t.estado}
