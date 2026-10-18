@@ -33,7 +33,7 @@
   --p-warn: #8E5C16; --p-warn-bar: #B97921; --p-warn-tint: #F7EEDF;
   --p-ok: #0B7F57; --p-ok-bar: #10A06F; --p-ok-tint: #E2F4EC;
   --p-signal: #C44D08; --p-signal-tint: #FDEBDF;
-  --p-track: #ECEEF4; --p-banner: #0A1450; --p-hover: #F3F4F9;
+  --p-track: #ECEEF4; --p-banner: #0A1450; --p-hover: #F3F4F9; --p-chart: #0A1450;
   color-scheme: light;
 }
 
@@ -44,7 +44,7 @@
   --p-warn: #F0BE6E; --p-warn-bar: #D29A3A; --p-warn-tint: rgba(185, 121, 33, .22);
   --p-ok: #7DDBAE; --p-ok-bar: #21B57F; --p-ok-tint: rgba(16, 160, 111, .2);
   --p-signal: #FF8A4C; --p-signal-tint: rgba(245, 98, 15, .16);
-  --p-track: #1A2670; --p-banner: #131F66; --p-hover: #16226E;
+  --p-track: #1A2670; --p-banner: #131F66; --p-hover: #16226E; --p-chart: #B9C1D6;
   color-scheme: dark;
 }
 
@@ -210,6 +210,9 @@ input, select, button, textarea { font: inherit; }
 @keyframes respira { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
 .pulso { animation: pulso 2s infinite; }
 .entra { animation: entra 200ms var(--ease); }
+/* Lectura recién capturada: entra y se ilumina un momento en naranja. */
+@keyframes nuevo { from { background: var(--p-signal-tint); } to { background: transparent; } }
+.mov-nuevo { animation: entra 250ms var(--ease), nuevo 2.4s var(--ease); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

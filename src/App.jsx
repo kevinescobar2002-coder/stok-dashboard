@@ -6,6 +6,7 @@ import {
 import { Acceso, Bienvenida, Aviso, Cargando } from "./Acceso";
 import Panel from "./Panel";
 import Intro from "./Intro";
+import { LECTOR_CAMARA, simularLectura } from "./simulacion";
 import { Toast, ahora, num, plural } from "./ui";
 import "./estilos.css";
 
@@ -29,7 +30,9 @@ const cargarDemo = async () => {
   const { default: d } = await import("./demo-obra.json");
   /* El lector "late" ahora: la demo no debe verse desconectada. */
   const latido = new Date(Date.now() - 3 * 60000).toISOString();
-  return { ...d, lectores: d.lectores.map((l) => ({ ...l, ultimo_latido: latido })) };
+  /* Además del portal RFID, la demo trae la cámara de visión IA. */
+  const lectores = [...d.lectores, LECTOR_CAMARA].map((l) => ({ ...l, ultimo_latido: latido }));
+  return { ...d, lectores, agentes: { ...d.agentes, captura: { ...d.agentes.captura, lectores: lectores.length } } };
 };
 
 /* ---------- modo pitch ----------
@@ -207,6 +210,24 @@ export default function App() {
     traer();
   };
 
+  /* ---- captura en vivo: solo con datos de ejemplo ----
+     Mientras se mira la demo, el portal y la cámara van registrando
+     movimientos. Con la pestaña oculta no se simula nada. */
+  const hayDatos = !!datos;
+  const enVivo = hayDatos && (!obra?.base || demoPedida);
+  useEffect(() => {
+    if (!enVivo) return;
+    let t;
+    const siguiente = () => {
+      t = setTimeout(() => {
+        if (!document.hidden) setDatos((d) => (d ? simularLectura(d) : d));
+        siguiente();
+      }, 3500 + Math.random() * 3000);
+    };
+    siguiente();
+    return () => clearTimeout(t);
+  }, [enVivo, obraId]);
+
   useEffect(() => {
     if (!sesion || !obra) return;
     traer();
@@ -334,7 +355,7 @@ export default function App() {
     return (
       <Panel {...{ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso, traer,
         llamarAgente, guardarMinimo, resolverCompra, vistas, setVistas,
-        guardarAjustes, nuevoCodigo, dejarObra, tema, demoPedida, cambiarDemo,
+        guardarAjustes, nuevoCodigo, dejarObra, tema, demoPedida, cambiarDemo, enVivo,
         cambiarTema: () => setTema((t) => (t === "oscuro" ? "claro" : "oscuro")),
         alEntrarAObra: (nueva) => refrescarObras(sesion.id, nueva.id) }} />
     );

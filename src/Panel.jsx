@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight, ChartLine, Check, ChevronsUpDown, CircleCheck, CircleX, FlaskConical, LogOut, MailCheck, MailX,
+  Camera, ChevronDown, ChevronUp, FileText, LayoutDashboard, BarChart3,
   Moon, PackageOpen, Pencil, Plus, Radio, RefreshCw, Search, Send, Settings, Sun, WifiOff,
 } from "lucide-react";
 import Ajustes from "./Ajustes";
+import Graficos from "./Graficos";
 import {
   Boton, Ceja, Chip, Ico, Logo, Punto, TONO, Titulo, Vacio,
   cant, clp, estadoDe, fechaCorta, hora, num, plural, tonoUrgencia, useAncho,
@@ -28,14 +30,17 @@ const CONEXION = {
 
 export default function Panel(props) {
   const { sesion, salir, datos, obra, obras, cambiarObra, conexion, traer, llamarAgente, guardarMinimo, resolverCompra,
-    vistas, setVistas, aviso, tema, cambiarTema, demoPedida, cambiarDemo } = props;
+    vistas, setVistas, aviso, tema, cambiarTema, demoPedida, cambiarDemo, enVivo } = props;
   const w = useAncho();
   const movil = w < 760, tablet = w < 1200;
+  /* La cabecera completa necesita ~1000 px; bajo eso va la compacta de dos filas. */
+  const cabeceraCompacta = w < 1024;
   const oscuro = tema === "oscuro";
   const [buscar, setBuscar] = useState("");
   const [fEstado, setFEstado] = useState("todos");
   const [verAjustes, setVerAjustes] = useState(false);
   const [selector, setSelector] = useState(false);
+  const [pestana, setPestana] = useState("resumen");
 
   const cargando = !datos && (conexion.estado === "cargando" || conexion.estado === "cambiando");
   const offline = conexion.estado === "sin_conexion";
@@ -95,7 +100,7 @@ export default function Panel(props) {
     <div>
       {/* ── cabecera ── */}
       <header style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--p-card)", borderBottom: "1px solid var(--p-line)" }}>
-        {!movil ? (
+        {!cabeceraCompacta ? (
           <div style={{ display: "flex", alignItems: "center", gap: 16, height: 64, padding: "0 24px", maxWidth: 1440, margin: "0 auto" }}>
             <Logo alto={26} />
             <div style={{ width: 1, height: 28, background: "var(--p-line)" }} />
@@ -113,18 +118,23 @@ export default function Panel(props) {
                 </div>
               ))}
             </div>
-            <div style={{ width: 1, height: 28, background: "var(--p-line)" }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 1, textAlign: "right" }}>
-              <span style={{ font: "600 14px/1.2 var(--font-body)", whiteSpace: "nowrap" }}>{sesion.nombre}</span>
-              <span style={{ font: "400 12px/1.2 var(--font-body)", color: "var(--p-ink2)" }}>{admin ? "Administrador" : "Bodeguero"}</span>
-            </div>
+            {/* Bajo 1200 px (proyector, notebook chico) la cabecera no cabe entera:
+                el nombre se va y "Salir" queda en su ícono. */}
+            {!tablet && <div style={{ width: 1, height: 28, background: "var(--p-line)" }} />}
+            {!tablet && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 1, textAlign: "right" }}>
+                <span style={{ font: "600 14px/1.2 var(--font-body)", whiteSpace: "nowrap" }}>{sesion.nombre}</span>
+                <span style={{ font: "400 12px/1.2 var(--font-body)", color: "var(--p-ink2)" }}>{admin ? "Administrador" : "Bodeguero"}</span>
+              </div>
+            )}
             <BotonTema />
             <button type="button" className="plano" onClick={abrirAjustes} aria-label="Ajustes de la obra" title="Ajustes de la obra"
               style={{ width: 44, height: 44, justifyContent: "center", border: "1px solid var(--p-line)" }}>
               <Ico de={Settings} tam={18} />
             </button>
-            <button type="button" className="plano" onClick={salir} style={{ height: 44, padding: "0 12px", font: "600 14px var(--font-body)", gap: 6 }}>
-              <Ico de={LogOut} color="var(--p-ink2)" />Salir
+            <button type="button" className="plano" onClick={salir} aria-label="Salir" title="Salir"
+              style={{ height: 44, padding: tablet ? 0 : "0 12px", width: tablet ? 44 : undefined, justifyContent: "center", font: "600 14px var(--font-body)", gap: 6 }}>
+              <Ico de={LogOut} color="var(--p-ink2)" />{!tablet && "Salir"}
             </button>
           </div>
         ) : (
@@ -225,6 +235,22 @@ export default function Panel(props) {
           </div>
         </section>
 
+        {/* ── pestañas: el resumen operativo o los gráficos ── */}
+        <div role="tablist" aria-label="Vista del panel" style={{ display: "flex", gap: 4, padding: 4, alignSelf: movil ? "stretch" : "flex-start",
+          background: "var(--p-card)", border: "1px solid var(--p-line)", borderRadius: 2 }}>
+          {[["resumen", "Resumen", LayoutDashboard], ["graficos", "Gráficos", BarChart3]].map(([k, txt, icono]) => (
+            <button key={k} type="button" role="tab" aria-selected={pestana === k} onClick={() => setPestana(k)}
+              style={{ flex: movil ? 1 : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 40, padding: "0 18px",
+                border: 0, borderRadius: 2, cursor: "pointer", font: "600 14px var(--font-body)",
+                background: pestana === k ? "var(--p-ink)" : "transparent", color: pestana === k ? "var(--p-page)" : "var(--p-ink)" }}>
+              <Ico de={icono} />{txt}
+            </button>
+          ))}
+        </div>
+
+        {pestana === "graficos" ? (
+          cargando ? <div className="esqueleto" style={{ height: 320 }} /> : <Graficos d={d} movil={movil} />
+        ) : (
         <div style={movil ? { display: "flex", flexDirection: "column", gap: 16 }
           : { display: "grid", gridTemplateColumns: tablet ? "minmax(0,1.5fr) minmax(0,1fr)" : "minmax(0,1.7fr) minmax(0,1fr)", gap: 20, alignItems: "start" }}>
           <div style={movil ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
@@ -233,8 +259,8 @@ export default function Panel(props) {
             <Proyeccion predicciones={d.predicciones} cargando={cargando} movil={movil} />
           </div>
           <div style={movil ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
+            <Movimientos movimientos={d.movimientos} cargando={cargando} movil={movil} enVivo={enVivo} />
             <Compras recomendaciones={d.recomendaciones} pendientes={pendientes} monto={monto} cargando={cargando} movil={movil} resolverCompra={resolverCompra} />
-            <Movimientos movimientos={d.movimientos} cargando={cargando} movil={movil} />
             <Lectores lectores={d.lectores || []} cargando={cargando} movil={movil} />
             <Alertas alertas={d.alertas} cargando={cargando} movil={movil} />
             <p style={{ order: 9, margin: 0, font: "400 13px/1.55 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>
@@ -242,6 +268,7 @@ export default function Panel(props) {
             </p>
           </div>
         </div>
+        )}
       </main>
 
       {verAjustes && (
@@ -351,7 +378,7 @@ const seccion = (movil, order) => ({ order, padding: movil ? 16 : 20 });
 
 /* Una obra real trae decenas de proyecciones y compras: se muestran las más
    urgentes (ya vienen ordenadas) y el resto queda a un clic. */
-const LIMITE = { proyeccion: 8, compras: 6 };
+const LIMITE = { proyeccion: 8, compras: 6, bodegaMovil: 3 };
 const VerMas = ({ total, visibles, todas, setTodas, que }) => (total <= visibles && !todas ? null : (
   <Boton variante="borde" tam="sm" ancho onClick={() => setTodas(!todas)} style={{ marginTop: 12 }}>
     {todas ? "Ver menos" : `Ver las ${total} ${que}`}
@@ -398,6 +425,9 @@ const SinTag = () => (
 /* ---------- bodega ---------- */
 function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso, verDemo }) {
   const padX = movil ? 16 : 20;
+  /* En el celular la lista parte plegada: los más urgentes y el resto a un toque. */
+  const [abierta, setAbierta] = useState(false);
+  const visibles = movil && !abierta ? lista.slice(0, LIMITE.bodegaMovil) : lista;
   const filtros = [["todos", "Todos", null], ["critico", "Bajo mínimo", "var(--p-crit-bar)"], ["pronto", "Reponer", "var(--p-warn-bar)"], ["ok", "OK", "var(--p-ok-bar)"]];
 
   const fila = (m) => {
@@ -466,7 +496,7 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
         </div>
       ) : movil ? (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, borderTop: "1px solid var(--p-line)" }}>
-          {lista.map(fila).map(({ m, e, stockColor, quiebre, qColor, partida, fondo }) => (
+          {visibles.map(fila).map(({ m, e, stockColor, quiebre, qColor, partida, fondo }) => (
             <li key={m.material_id} style={{ padding: "14px 16px", borderBottom: "1px solid var(--p-line)", background: fondo }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -495,6 +525,13 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
               </div>
             </li>
           ))}
+          {lista.length > LIMITE.bodegaMovil && (
+            <li style={{ padding: 12 }}>
+              <Boton variante="borde" ancho onClick={() => setAbierta(!abierta)} icono={<Ico de={abierta ? ChevronUp : ChevronDown} />}>
+                {abierta ? "Contraer lista" : `Ver los ${lista.length} materiales`}
+              </Boton>
+            </li>
+          )}
         </ul>
       ) : (
         <>
@@ -641,27 +678,42 @@ function Compras({ recomendaciones, pendientes, monto, cargando, movil, resolver
   );
 }
 
-/* ---------- movimientos ---------- */
-function Movimientos({ movimientos, cargando, movil }) {
+/* ---------- movimientos ----------
+   Cada lectura dice quién la capturó: el portal RFID, la cámara de visión IA
+   o, en el historial de la planilla, un vale de bodega escrito a mano. */
+const ORIGEN = {
+  rfid: { icono: Radio, txt: "Portal RFID" },
+  camara: { icono: Camera, txt: "Cámara IA" },
+  vale: { icono: FileText, txt: "Vale de bodega" },
+};
+
+function Movimientos({ movimientos, cargando, movil, enVivo }) {
   return (
     <section aria-label="Movimientos capturados" className="tarjeta" style={seccion(movil, 6)}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
         <Titulo tam={20}>Movimientos</Titulo>
-        {movimientos.length > 0 && <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)" }}>{movimientos.length} lecturas</span>}
+        {enVivo
+          ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 24, padding: "0 9px", borderRadius: 2, background: "var(--p-ok-tint)",
+              color: "var(--p-ok)", font: "600 12px var(--font-body)" }}><Punto color="var(--p-ok-bar)" tam={7} pulso />En vivo</span>
+          : movimientos.length > 0 && <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)" }}>{movimientos.length} lecturas</span>}
       </div>
       {cargando ? <div className="esqueleto" style={{ height: 120 }} />
         : movimientos.length === 0 ? <Vacio titulo="Sin lecturas todavía" texto="Cada pasada de un material frente al lector aparece aquí en segundos." />
         : (
-          <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 340, overflow: "auto" }}>
-            {movimientos.map((mv, i) => {
+          <ul aria-live={enVivo ? "polite" : undefined} style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 340, overflow: "auto" }}>
+            {movimientos.map((mv) => {
               const delta = num(mv.delta), entra = delta >= 0;
+              const o = ORIGEN[mv.origen] || ORIGEN.vale;
+              const destino = mv.origen ? String(mv.lector || "").split(" · ").slice(1).join(" · ") : mv.lector;
               return (
-                <li key={i} style={{ display: "grid", gridTemplateColumns: "44px minmax(0,1fr) auto", gap: 10, alignItems: "baseline", padding: "9px 0", borderTop: "1px solid var(--p-line)" }}>
+                <li key={mv.id || `${mv.ts}|${mv.nombre}|${mv.delta}`} className={mv.origen ? "mov-nuevo" : undefined}
+                  style={{ display: "grid", gridTemplateColumns: "20px 44px minmax(0,1fr) auto", gap: 10, alignItems: "center", padding: "9px 4px", borderTop: "1px solid var(--p-line)" }}>
+                  <span title={o.txt} style={{ display: "flex" }}><Ico de={o.icono} tam={16} color={mv.origen ? "var(--p-signal)" : "var(--p-ink2)"} /></span>
                   <span style={{ font: "600 15px var(--font-mono)", color: entra ? "var(--p-ok)" : "var(--p-ink)", textAlign: "right" }}>{entra ? "+" : "−"}{cant(Math.abs(delta))}</span>
                   <span style={{ minWidth: 0 }}>
-                    <span style={{ display: "block", font: "600 14px/1.3 var(--font-body)" }}>{mv.nombre}</span>
+                    <span style={{ display: "block", font: "600 14px/1.3 var(--font-body)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mv.nombre}</span>
                     <span style={{ display: "block", font: "400 12px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>
-                      {mv.direccion === "entrada" ? "Entrada" : "Salida"} · queda {cant(mv.stock)}{mv.lector ? ` · ${mv.lector}` : ""}
+                      {o.txt} · {mv.direccion === "entrada" ? "entrada" : "salida"} · queda {cant(mv.stock)}{destino ? ` · ${destino}` : ""}
                     </span>
                   </span>
                   <span style={{ font: "400 12px var(--font-mono)", color: "var(--p-ink2)" }}>{hora(mv.ts)}</span>
