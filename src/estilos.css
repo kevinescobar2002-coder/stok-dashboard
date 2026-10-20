@@ -203,6 +203,27 @@ input, select, button, textarea { font: inherit; }
 @keyframes intro-sube { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 @keyframes intro-barra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
+/* ---------- modo suspensión: bodega apagada ---------- */
+.suspendido {
+  position: relative; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px 110px; text-align: center; color: var(--stok-niebla); font-family: var(--font-body);
+  background: radial-gradient(ellipse at 50% 35%, #111A5C 0%, var(--stok-marino) 50%, var(--stok-marino-deep) 100%);
+}
+.suspendido__centro { display: flex; flex-direction: column; align-items: center; gap: 18px; max-width: 720px; }
+.suspendido__agente { width: clamp(130px, 22vh, 200px); height: auto; opacity: .92; animation: suspendido-cabizbajo 5s ease-in-out infinite; transform-origin: 50% 90%; }
+.suspendido__ceja { font: 400 13px/1 var(--font-mono); letter-spacing: .22em; text-transform: uppercase; color: var(--stok-acero, #8A93AD); }
+.suspendido__titulo { margin: 0; font: 800 clamp(40px, 8vw, 88px)/.95 var(--font-display); text-transform: uppercase; letter-spacing: -.01em; }
+.suspendido__puntos span { animation: suspendido-punto 1.6s infinite both; }
+.suspendido__puntos span:nth-child(2) { animation-delay: .25s; }
+.suspendido__puntos span:nth-child(3) { animation-delay: .5s; }
+.suspendido__texto { margin: 0; max-width: 520px; font: 400 clamp(16px, 2.2vw, 20px)/1.5 var(--font-body); color: var(--stok-mist-2); }
+.suspendido__pie {
+  position: absolute; left: 0; right: 0; bottom: 32px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  font: 400 14px var(--font-body); color: var(--stok-mist-2); opacity: .8;
+}
+@keyframes suspendido-punto { 0%, 20% { opacity: .15; } 50% { opacity: 1; } 100% { opacity: .15; } }
+@keyframes suspendido-cabizbajo { 0%, 100% { transform: rotate(0deg) translateY(0); } 50% { transform: rotate(-3deg) translateY(4px); } }
+
 /* ---------- animaciones ---------- */
 @keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(16, 160, 111, .55); } 70% { box-shadow: 0 0 0 6px rgba(16, 160, 111, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 160, 111, 0); } }
 @keyframes escaneo { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
@@ -222,4 +243,9 @@ input, select, button, textarea { font: inherit; }
   .intro .intro__onda { animation: intro-onda 2.2s var(--ease) var(--retraso, 0s) infinite !important; }
   .intro .intro__aparece { animation: intro-sube 700ms var(--ease) var(--retraso, 0s) both !important; }
   .intro .intro__barra span { animation: intro-barra var(--dur, 4200ms) linear both !important; }
+  /* Igual la bodega apagada: los puntos que titilan son parte del mensaje. */
+  .suspendido .suspendido__puntos span { animation: suspendido-punto 1.6s infinite both !important; }
+  .suspendido .suspendido__puntos span:nth-child(2) { animation-delay: .25s !important; }
+  .suspendido .suspendido__puntos span:nth-child(3) { animation-delay: .5s !important; }
+  .suspendido .suspendido__agente { animation: suspendido-cabizbajo 5s ease-in-out infinite !important; }
 }
