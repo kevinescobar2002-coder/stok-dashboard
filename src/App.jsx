@@ -175,6 +175,9 @@ export default function App() {
       const j = await r.json().catch(() => ({}));
       aviso(cual === "prediccion" ? "Predicción recalculada" : "Revisión de compras lista",
         cual === "prediccion" ? "Proyectada contra la programación de obra." : j.mensaje || "Si había alertas, el correo ya salió.");
+      /* El Agente 3 informa si el push salió; si no, se dice aquí en vez de fallar en silencio. */
+      if (j.push && !j.push.enviado)
+        aviso("El push no salió", `${j.push.error || "OneSignal no lo aceptó"} · etiqueta obra_id = ${j.push.obra_id}`, "alert");
       setTimeout(() => traer(false), 1500);
     } catch { aviso(`El agente de ${nombre} no respondió`, "Revisa que el flujo de n8n esté activo.", "alert"); }
   };
