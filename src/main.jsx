@@ -4,7 +4,7 @@ import Suspendido from "./Suspendido.jsx";
 
 /* Modo suspensión: true muestra "Bodega apagada" y el dashboard ni se descarga.
    Para volver a encenderlo, false. */
-const SUSPENDIDO = true;
+const SUSPENDIDO = false;
 
 const App = lazy(() => import("./App.jsx"));
 
