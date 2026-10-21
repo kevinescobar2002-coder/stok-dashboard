@@ -15,7 +15,7 @@ function Tarjeta({ titulo, bajada, children }) {
     <section className="tarjeta" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <Titulo tam={18}>{titulo}</Titulo>
-        <span style={{ font: "400 13px/1.4 var(--font-body)", color: "var(--p-ink2)" }}>{bajada}</span>
+        <span style={{ font: "400 14px/1.4 var(--font-body)", color: "var(--p-ink2)" }}>{bajada}</span>
       </div>
       {children}
     </section>
@@ -36,7 +36,7 @@ function Barras({ filas, escala }) {
           <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             <span style={{ flex: "0 1 auto", width: `${Math.max(f.valor ? 3 : 0, (f.valor / max) * 72)}%`, height: 20, background: f.color,
               borderRadius: "0 4px 4px 0", transition: "width 400ms var(--ease)" }} />
-            <span style={{ flex: "none", font: "600 13px/1.2 var(--font-body)", color: "var(--p-ink)", whiteSpace: "nowrap" }}>{f.texto}</span>
+            <span style={{ flex: "none", font: "600 14px/1.2 var(--font-body)", color: "var(--p-ink)", whiteSpace: "nowrap" }}>{f.texto}</span>
           </span>
         </div>
       ))}
@@ -118,7 +118,7 @@ function PorHora({ movimientos }) {
       </div>
       <div style={{ display: "flex", gap: 2, marginTop: -8 }}>
         {serie.map((s) => (
-          <span key={s.h} style={{ flex: 1, minWidth: 0, textAlign: "center", font: "400 11px var(--font-mono)", color: "var(--p-ink2)" }}>
+          <span key={s.h} style={{ flex: 1, minWidth: 0, textAlign: "center", font: "400 12px var(--font-mono)", color: "var(--p-ink2)" }}>
             {serie.length > 12 && s.h % 2 ? "" : String(s.h).padStart(2, "0")}
           </span>
         ))}

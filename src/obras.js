@@ -77,15 +77,6 @@ export async function fijarObraActiva(userId, obraUuid) {
 }
 
 /* ---------- alta ---------- */
-export async function crearObra(nombre, obraId) {
-  const { data, error } = await supabase.rpc("crear_obra", {
-    p_nombre: String(nombre || "").trim(),
-    p_obra_id: String(obraId || "").trim() || null,
-  });
-  if (error) throw new Error(mensaje(error));
-  return desdeFila(unaFila(data), "admin");
-}
-
 export async function unirseAObra(codigo) {
   const { data, error } = await supabase.rpc("unirse_a_obra", { p_codigo: String(codigo || "").trim() });
   if (error) throw new Error(mensaje(error));

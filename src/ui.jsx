@@ -95,7 +95,7 @@ export const Chip = ({ tono = "neutro", punto = true, alto = 26, children, style
   const t = TONO[tono] || TONO.neutro;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: alto, padding: "0 9px", background: t.bg, color: t.fg,
-      borderRadius: 2, font: `600 ${alto < 26 ? 12 : 13}px var(--font-body)`, whiteSpace: "nowrap", ...style }}>
+      borderRadius: 2, font: `600 ${alto < 26 ? 12 : 14}px var(--font-body)`, whiteSpace: "nowrap", ...style }}>
       {punto && <span style={{ width: 7, height: 7, borderRadius: 9999, background: t.dot, flex: "none" }} />}
       {children}
     </span>
@@ -121,7 +121,7 @@ export const Vacio = ({ titulo, texto, icono, centrado }) => (
   <div style={{ display: "flex", flexDirection: "column", alignItems: centrado ? "center" : "flex-start", gap: 6,
     padding: centrado ? "48px 24px" : "4px 0", textAlign: centrado ? "center" : "left" }}>
     {icono && <Ico de={icono} tam={28} color="var(--p-ink2)" style={{ marginBottom: 2 }} />}
-    <span style={{ font: `600 ${centrado ? 17 : 16}px var(--font-body)`, color: "var(--p-ink)" }}>{titulo}</span>
+    <span style={{ font: `600 ${centrado ? 18 : 16}px var(--font-body)`, color: "var(--p-ink)" }}>{titulo}</span>
     <span style={{ maxWidth: 440, font: "400 14px/1.5 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>{texto}</span>
   </div>
 );
@@ -140,7 +140,7 @@ export function Toast({ titulo, mensaje, estado = "ok", cerrar }) {
         background: "var(--stok-marino)", border: "1px solid var(--stok-border-dark)", borderLeft: `4px solid ${t.borde}`, borderRadius: 6 }}>
       <Ico de={t.icono} tam={20} color={t.color} style={{ marginTop: 1 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ font: "600 15px/1.3 var(--font-body)", color: "var(--stok-niebla)" }}>{titulo}</div>
+        <div style={{ font: "600 16px/1.3 var(--font-body)", color: "var(--stok-niebla)" }}>{titulo}</div>
         {mensaje && <div style={{ font: "400 14px/1.4 var(--font-body)", color: "var(--stok-mist-2)", marginTop: 2 }}>{mensaje}</div>}
       </div>
       <button type="button" aria-label="Cerrar aviso" onClick={cerrar}

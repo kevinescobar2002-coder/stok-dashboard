@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { supabase } from "./supabase";
-import { crearObra, unirseAObra } from "./obras";
+import { unirseAObra } from "./obras";
 import { Boton, Campo, Ceja, Ico, Logo } from "./ui";
 
 /* ============================================================
@@ -34,7 +34,7 @@ function Tarjeta({ children, pie }) {
 }
 
 const TituloGrande = ({ children }) => (
-  <h1 style={{ margin: 0, font: "800 30px/.95 var(--font-display)", textTransform: "uppercase", letterSpacing: "-.01em", color: "var(--p-ink)" }}>{children}</h1>
+  <h1 style={{ margin: 0, font: "800 28px/.95 var(--font-display)", textTransform: "uppercase", letterSpacing: "-.01em", color: "var(--p-ink)" }}>{children}</h1>
 );
 
 const ErrorCaja = ({ children }) => (
@@ -45,10 +45,10 @@ const ErrorCaja = ({ children }) => (
 );
 
 const Alternativa = ({ antes, texto, onClick }) => (
-  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, flexWrap: "wrap", font: "400 15px var(--font-body)", color: "var(--p-ink2)" }}>
+  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, flexWrap: "wrap", font: "400 16px var(--font-body)", color: "var(--p-ink2)" }}>
     {antes}
     <button type="button" onClick={onClick} style={{ minHeight: 44, padding: "0 4px", background: "transparent", border: 0, cursor: "pointer",
-      font: "600 15px var(--font-body)", color: "var(--p-signal)", textDecoration: "underline", textUnderlineOffset: 3 }}>{texto}</button>
+      font: "600 16px var(--font-body)", color: "var(--p-signal)", textDecoration: "underline", textUnderlineOffset: 3 }}>{texto}</button>
   </div>
 );
 
@@ -113,8 +113,8 @@ export function Acceso({ aviso }) {
         <Campo etiqueta="Clave" type="password" placeholder={crear ? "Mínimo 6 caracteres" : "••••••••"}
           autoComplete={crear ? "new-password" : "current-password"} {...campo("clave")} />
         {crear && (
-          <Campo etiqueta="Código de la obra (opcional)" placeholder="STOK-A7K2M9" autoCapitalize="characters" {...campo("codigo")}
-            pista="Te lo da el jefe de la obra. Si vas a crear una obra nueva, déjalo en blanco." />
+          <Campo etiqueta="Código de la obra" placeholder="STOK-XXXXXX" autoCapitalize="characters" {...campo("codigo")}
+            pista="Te lo da el jefe de la obra. Si no lo tienes aún, podrás escribirlo después de entrar." />
         )}
         {error && <ErrorCaja>{error}</ErrorCaja>}
         <Boton type="submit" tam="lg" ancho disabled={ocupado}>
@@ -127,32 +127,23 @@ export function Acceso({ aviso }) {
 }
 
 /* ============================================================ BIENVENIDA
-   Primera pantalla de quien todavía no pertenece a ninguna obra.
-   Dos caminos: entrar con el código que le pasaron, o abrir una obra
-   nueva (y quedar como su administrador). */
-export function Bienvenida({ sesion, salir, aviso, alEntrar }) {
-  const [via, setVia] = useState("codigo");
+   Primera pantalla de quien todavía no pertenece a la obra.
+   STOK trabaja con una sola obra, la conectada al flujo n8n:
+   se entra con el código de invitación, no se crean obras nuevas. */
+export function Bienvenida({ sesion, salir, alEntrar, aviso }) {
   const [codigo, setCodigo] = useState("");
-  const [nueva, setNueva] = useState({ nombre: "", obraId: "" });
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState("");
 
   const enviar = async (e) => {
     e.preventDefault();
     setError("");
-    if (via === "codigo" && !codigo.trim()) return setError("Escribe el código de la obra.");
-    if (via === "crear" && !nueva.nombre.trim()) return setError("La obra necesita un nombre.");
+    if (!codigo.trim()) return setError("Escribe el código de la obra.");
     setOcupado(true);
     try {
-      if (via === "codigo") {
-        const o = await unirseAObra(codigo);
-        aviso("Entraste a la obra", o.nombre);
-        await alEntrar(o);
-      } else {
-        const o = await crearObra(nueva.nombre, nueva.obraId);
-        aviso("Obra creada", `El código para tu equipo es ${o.codigo}.`);
-        await alEntrar(o);
-      }
+      const o = await unirseAObra(codigo);
+      aviso("Entraste a la obra", o.nombre);
+      await alEntrar(o);
     } catch (e) { setError(e.message); }
     finally { setOcupado(false); }
   };
@@ -161,36 +152,16 @@ export function Bienvenida({ sesion, salir, aviso, alEntrar }) {
     <Tarjeta>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <TituloGrande>Hola, {sesion.nombre}.</TituloGrande>
-        <p style={{ margin: 0, font: "400 15px/1.5 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>
-          Todavía no estás en ninguna obra. Cada obra tiene su propia bodega, y solo ves la tuya.
+        <p style={{ margin: 0, font: "400 16px/1.5 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>
+          Todavía no estás en la obra. Escribe el código de invitación que te dio el jefe de obra.
         </p>
       </div>
-      <div role="tablist" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", padding: 4, gap: 4, background: "var(--p-page)",
-        border: "1px solid var(--p-line)", borderRadius: 2 }}>
-        {[["codigo", "Tengo un código"], ["crear", "Crear obra nueva"]].map(([v, t]) => (
-          <button key={v} type="button" role="tab" aria-selected={via === v} onClick={() => { setVia(v); setError(""); }}
-            style={{ height: 44, border: 0, borderRadius: 2, cursor: "pointer", font: "600 14px var(--font-body)",
-              background: via === v ? "var(--stok-marino)" : "transparent", color: via === v ? "var(--stok-niebla)" : "var(--p-ink)" }}>{t}</button>
-        ))}
-      </div>
       <form onSubmit={enviar} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {via === "codigo" ? (
-          <Campo etiqueta="Código de la obra" placeholder="STOK-A7K2M9" value={codigo} autoCapitalize="characters"
-            onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-            pista="Seis caracteres que te pasa el jefe de la obra o quien la creó." />
-        ) : (
-          <>
-            <Campo etiqueta="Nombre de la obra" placeholder="Edificio Los Aromos" value={nueva.nombre}
-              onChange={(e) => setNueva({ ...nueva, nombre: e.target.value })} />
-            <Campo etiqueta="Identificador (opcional)" placeholder="OBRA-001" value={nueva.obraId}
-              onChange={(e) => setNueva({ ...nueva, obraId: e.target.value.toUpperCase() })}
-              pista="Es la llave que separa las filas dentro de la planilla. Si lo dejas en blanco, se asigna uno libre. No se puede cambiar después." />
-          </>
-        )}
+        <Campo etiqueta="Código de la obra" placeholder="STOK-XXXXXX" value={codigo} autoCapitalize="characters"
+          onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+          pista="Lo encuentra el jefe de obra en Ajustes del dashboard." />
         {error && <ErrorCaja>{error}</ErrorCaja>}
-        <Boton type="submit" tam="lg" ancho disabled={ocupado}>
-          {via === "codigo" ? (ocupado ? "Entrando…" : "Entrar a la obra") : (ocupado ? "Creando…" : "Crear obra y administrarla")}
-        </Boton>
+        <Boton type="submit" tam="lg" ancho disabled={ocupado}>{ocupado ? "Entrando…" : "Entrar a la obra"}</Boton>
       </form>
       <Alternativa texto="Salir" onClick={salir} />
     </Tarjeta>
@@ -203,7 +174,7 @@ export function Aviso({ titulo, texto, accion, onAccion, salir }) {
     <Tarjeta>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <TituloGrande>{titulo}</TituloGrande>
-        <p style={{ margin: 0, font: "400 15px/1.5 var(--font-body)", color: "var(--p-ink2)" }}>{texto}</p>
+        <p style={{ margin: 0, font: "400 16px/1.5 var(--font-body)", color: "var(--p-ink2)" }}>{texto}</p>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <Boton onClick={onAccion}>{accion}</Boton>

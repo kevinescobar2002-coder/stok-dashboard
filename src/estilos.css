@@ -10,6 +10,18 @@
   --font-body: 'Archivo', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
   --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
 
+  /* Escala tipográfica — la misma en dashboard y app. Ningún texto usa otro tamaño.
+     League Spartan (display) solo en títulos y cifras grandes, en mayúsculas;
+     Archivo (body) para leer; JetBrains Mono para IDs, códigos y cantidades. */
+  --t-pie: 12px;           /* metadatos, IDs, cejas, chips chicos */
+  --t-meta: 14px;          /* notas, pistas, etiquetas, botones chicos */
+  --t-texto: 16px;         /* texto principal, nombres, campos (evita el zoom de iOS) */
+  --t-destacado: 18px;     /* botón grande, días de quiebre, estados vacíos */
+  --t-titulo: 22px;        /* títulos de sección y cifras medianas */
+  --t-titulo-grande: 28px; /* títulos de pantalla, stock y código de invitación */
+  --t-cifra: 40px;         /* KPI en celular */
+  --t-cifra-grande: 56px;  /* KPI en escritorio */
+
   --stok-marino: #0A1450;
   --stok-marino-2: #131F66;
   --stok-marino-deep: #070B2E;
@@ -80,14 +92,14 @@ input, select, button, textarea { font: inherit; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 44px; padding: 0 20px;
-  font: 600 15px var(--font-body); letter-spacing: .01em; white-space: nowrap;
+  font: 600 var(--t-texto) var(--font-body); letter-spacing: .01em; white-space: nowrap;
   border: 1px solid transparent; border-radius: 2px; cursor: pointer;
   transition: background 120ms var(--ease), border-color 120ms var(--ease);
 }
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
-.btn--sm { height: 36px; padding: 0 14px; font-size: 14px; }
-.btn--lg { height: 56px; padding: 0 28px; font-size: 17px; }
+.btn--sm { height: 36px; padding: 0 14px; font-size: var(--t-meta); }
+.btn--lg { height: 56px; padding: 0 28px; font-size: var(--t-destacado); }
 .btn--ancho { width: 100%; }
 
 .btn--primario { background: var(--stok-signal); color: var(--stok-marino); }
@@ -116,10 +128,10 @@ input, select, button, textarea { font: inherit; }
 
 /* ---------- campos ---------- */
 .campo { display: flex; flex-direction: column; gap: 6px; }
-.campo__etiqueta { font: 600 14px var(--font-body); color: var(--p-ink); }
+.campo__etiqueta { font: 600 var(--t-meta) var(--font-body); color: var(--p-ink); }
 .campo__input {
   height: 44px; width: 100%; padding: 0 14px;
-  font: 400 15px var(--font-body); color: var(--p-ink);
+  font: 400 var(--t-texto) var(--font-body); color: var(--p-ink);
   background: var(--p-card); border: 1px solid var(--p-line); border-radius: 2px; outline: none;
   transition: border-color 120ms var(--ease), box-shadow 120ms var(--ease);
 }
@@ -127,7 +139,7 @@ input, select, button, textarea { font: inherit; }
 .campo__input:focus { border-color: var(--p-outline); box-shadow: 0 0 0 2px var(--p-signal-tint); }
 .campo__input:disabled { background: var(--p-sunk); color: var(--p-ink2); cursor: not-allowed; }
 .campo__input--error, .campo__input--error:focus { border-color: var(--p-crit-bar); }
-.campo__pista { font: 400 13px/1.45 var(--font-body); color: var(--p-ink2); }
+.campo__pista { font: 400 var(--t-meta)/1.45 var(--font-body); color: var(--p-ink2); }
 .campo__pista--error { color: var(--p-crit); }
 
 /* ---------- piezas del panel ---------- */
@@ -143,12 +155,12 @@ input, select, button, textarea { font: inherit; }
 .minimo {
   display: inline-flex; align-items: center; gap: 6px; padding: 0 8px;
   background: transparent; border: 1px dashed var(--p-line); border-radius: 2px; cursor: pointer;
-  font: 600 15px var(--font-mono); color: var(--p-ink);
+  font: 600 var(--t-texto) var(--font-mono); color: var(--p-ink);
 }
 .minimo:hover { border-color: var(--p-ink2); background: var(--p-hover); }
 .minimo__input {
   width: 72px; padding: 0 8px; text-align: right;
-  font: 600 15px var(--font-mono); color: var(--p-ink);
+  font: 600 var(--t-texto) var(--font-mono); color: var(--p-ink);
   background: var(--p-card); border: 1px solid var(--stok-signal); border-radius: 2px; outline: none;
   box-shadow: 0 0 0 2px rgba(245, 98, 15, .2);
 }
@@ -156,7 +168,7 @@ input, select, button, textarea { font: inherit; }
 .tabla { width: 100%; border-collapse: collapse; font-family: var(--font-body); color: var(--p-ink); }
 .tabla th {
   position: sticky; top: 0; z-index: 1; background: var(--p-sunk);
-  padding: 10px 12px; font: 600 12px var(--font-body); color: var(--p-ink2);
+  padding: 10px 12px; font: 600 var(--t-pie) var(--font-body); color: var(--p-ink2);
   border-bottom: 1px solid var(--p-line); text-align: left;
 }
 .tabla td { padding: 12px; vertical-align: middle; border-bottom: 1px solid var(--p-line); }

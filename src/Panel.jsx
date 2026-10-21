@@ -85,7 +85,7 @@ export default function Panel(props) {
   const abrirAjustes = () => { setSelector(false); setVerAjustes(true); };
   const PillConexion = ({ corto }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 8, height: 28, padding: "0 10px", borderRadius: 2, background: cxTono.bg,
-      color: cxTono.fg, font: `600 ${corto ? 12 : 13}px var(--font-body)`, whiteSpace: "nowrap" }}>
+      color: cxTono.fg, font: `600 ${corto ? 12 : 14}px var(--font-body)`, whiteSpace: "nowrap" }}>
       <Punto color={cxTono.dot} pulso={cx.pulso} />{corto ? cx.corto : cx.txt(conexion)}
     </div>
   );
@@ -112,7 +112,7 @@ export default function Panel(props) {
                 <div key={a.nombre} title={`Agente de ${a.nombre}: ${a.meta}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px" }}>
                   <Punto color={a.dot} />
                   <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                    <span style={{ font: "600 13px/1.2 var(--font-body)" }}>{a.nombre}</span>
+                    <span style={{ font: "600 14px/1.2 var(--font-body)" }}>{a.nombre}</span>
                     {w >= 1360 && <span style={{ font: "400 12px/1.2 var(--font-body)", color: "var(--p-ink2)", whiteSpace: "nowrap" }}>{a.meta}</span>}
                   </span>
                 </div>
@@ -159,7 +159,7 @@ export default function Panel(props) {
               {agentes.map((a) => (
                 <div key={a.nombre} style={{ flex: "none", display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", border: "1px solid var(--p-line)", borderRadius: 2 }}>
                   <Punto color={a.dot} />
-                  <span style={{ font: "600 13px/1.2 var(--font-body)", whiteSpace: "nowrap" }}>{a.nombre}</span>
+                  <span style={{ font: "600 14px/1.2 var(--font-body)", whiteSpace: "nowrap" }}>{a.nombre}</span>
                   <span style={{ font: "400 12px/1.2 var(--font-body)", color: "var(--p-ink2)", whiteSpace: "nowrap" }}>{a.meta}</span>
                 </div>
               ))}
@@ -191,7 +191,7 @@ export default function Panel(props) {
             <img src="/mascota-transparente.png" alt="" style={{ width: movil ? 44 : 56, height: "auto", flex: "none" }} />
             <div style={{ flex: 1, minWidth: 220, display: "flex", flexDirection: "column", gap: 6 }}>
               <Ceja color="var(--stok-signal)">Agente de Acción · hoy</Ceja>
-              <span style={{ font: `600 ${movil ? 17 : 20}px/1.3 var(--font-body)`, color: "#fff", textWrap: "pretty" }}>{alertaViva.mensaje}</span>
+              <span style={{ font: `600 ${movil ? 18 : 22}px/1.3 var(--font-body)`, color: "#fff", textWrap: "pretty" }}>{alertaViva.mensaje}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
               {alertaViva.correo_enviado && (
@@ -258,7 +258,7 @@ export default function Panel(props) {
             <Compras recomendaciones={d.recomendaciones} pendientes={pendientes} monto={monto} cargando={cargando} movil={movil} resolverCompra={resolverCompra} />
             <Lectores lectores={d.lectores || []} cargando={cargando} movil={movil} />
             <Alertas alertas={d.alertas} cargando={cargando} movil={movil} />
-            <p style={{ order: 9, margin: 0, font: "400 13px/1.55 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>
+            <p style={{ order: 9, margin: 0, font: "400 14px/1.55 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>
               La planilla de la obra manda. STOK la lee cada 60 segundos, proyecta contra la programación y avisa cuando corresponde. Nadie cuenta a mano.
             </p>
           </div>
@@ -292,8 +292,8 @@ function SelectorObra({ obra, obras, abierto, setAbierto, cambiarObra, abrirAjus
         title="Cambiar de obra" style={{ gap: 10, width: movil ? "100%" : undefined, minHeight: movil ? 48 : 44, padding: movil ? "6px 12px" : "0 12px",
           border: `1px solid ${abierto ? "var(--stok-signal)" : "var(--p-line)"}`, background: movil ? "var(--p-sunk)" : "transparent", maxWidth: movil ? "none" : 300 }}>
         <span style={{ flex: movil ? 1 : undefined, minWidth: 0, display: "flex", flexDirection: "column", gap: 1 }}>
-          <span style={{ font: `600 ${movil ? 15 : 14}px/1.2 var(--font-body)`, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{obra.nombre}</span>
-          <span style={{ font: "400 11px/1.2 var(--font-mono)", color: "var(--p-ink2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ font: `600 ${movil ? 16 : 14}px/1.2 var(--font-body)`, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{obra.nombre}</span>
+          <span style={{ font: "400 12px/1.2 var(--font-mono)", color: "var(--p-ink2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {detalle || `${obra.obraId} · ${obra.rol === "admin" ? "administras" : "miembro"}`}
           </span>
         </span>
@@ -304,14 +304,14 @@ function SelectorObra({ obra, obras, abierto, setAbierto, cambiarObra, abrirAjus
           <div onClick={() => setAbierto(false)} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
           <div role="listbox" aria-label="Tus obras" className="entra" style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: movil ? 0 : undefined,
             width: movil ? undefined : 300, zIndex: 40, background: "var(--p-card)", border: "1px solid var(--p-line)", borderRadius: 6, padding: 6 }}>
-            <div style={{ padding: "8px 10px 6px" }}><Ceja style={{ fontSize: 11 }}>Tus obras</Ceja></div>
+            <div style={{ padding: "8px 10px 6px" }}><Ceja style={{ fontSize: 12 }}>Tus obras</Ceja></div>
             {obras.map((o) => (
               <button key={o.id} type="button" role="option" aria-selected={o.id === obra.id} className="plano"
                 onClick={() => { setAbierto(false); cambiarObra(o.id); }}
                 style={{ width: "100%", gap: 10, minHeight: movil ? 52 : 48, padding: "8px 10px", background: o.id === obra.id ? "var(--p-hover)" : "transparent" }}>
                 <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-                  <span style={{ font: `600 ${movil ? 15 : 14}px/1.25 var(--font-body)` }}>{o.nombre}</span>
-                  <span style={{ font: "400 11px/1.2 var(--font-mono)", color: "var(--p-ink2)" }}>{o.obraId} · {o.rol === "admin" ? "administras" : "miembro"}</span>
+                  <span style={{ font: `600 ${movil ? 16 : 14}px/1.25 var(--font-body)` }}>{o.nombre}</span>
+                  <span style={{ font: "400 12px/1.2 var(--font-mono)", color: "var(--p-ink2)" }}>{o.obraId} · {o.rol === "admin" ? "administras" : "miembro"}</span>
                 </span>
                 {o.id === obra.id && <Ico de={Check} color="var(--p-signal)" />}
               </button>
@@ -334,7 +334,7 @@ function Aviso({ tono, icono, titulo, texto, accion, onAccion, accion2, onAccion
       border: `1px solid ${t.dot}`, borderRadius: 6 }}>
       <Ico de={icono} tam={20} color={t.fg} />
       <div style={{ flex: 1, minWidth: 220, display: "flex", flexDirection: "column", gap: 2 }}>
-        <span style={{ font: "600 15px/1.3 var(--font-body)" }}>{titulo}</span>
+        <span style={{ font: "600 16px/1.3 var(--font-body)" }}>{titulo}</span>
         <span style={{ font: "400 14px/1.45 var(--font-body)", color: "var(--p-ink2)" }}>{texto}</span>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -357,7 +357,7 @@ function Kpi({ etiqueta, valor, nota, tono, relleno, punto, onClick, movil }) {
         {(relleno || punto) && marca && <Punto color={marca} />}
       </span>
       <span style={{ font: `800 ${movil ? 40 : 56}px/.95 var(--font-display)`, letterSpacing: "-.01em", color }}>{valor}</span>
-      <span style={{ font: "400 13px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>{nota}</span>
+      <span style={{ font: "400 14px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>{nota}</span>
     </button>
   );
 }
@@ -400,7 +400,7 @@ function Minimo({ valor, nombre, onGuardar, aviso, movil }) {
       <input autoFocus type="number" min="0" step="any" inputMode="decimal" className="minimo__input" aria-label={`Nuevo mínimo de ${nombre}`}
         value={v} onChange={(e) => setV(e.target.value)} onBlur={guardar} style={{ height: alto }}
         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setV(String(valor)); setEditando(false); } }} />
-      {!movil && <div style={{ font: "400 11px var(--font-body)", color: "var(--p-ink2)", marginTop: 4, whiteSpace: "nowrap" }}>Enter guarda · Esc</div>}
+      {!movil && <div style={{ font: "400 12px var(--font-body)", color: "var(--p-ink2)", marginTop: 4, whiteSpace: "nowrap" }}>Enter guarda · Esc</div>}
     </div>
   );
   return (
@@ -413,7 +413,7 @@ function Minimo({ valor, nombre, onGuardar, aviso, movil }) {
 
 const SinTag = () => (
   <span title="Sin tag NTAG215 registrado en la planilla" style={{ display: "inline-flex", alignItems: "center", height: 20, padding: "0 6px",
-    border: "1px dashed var(--p-warn-bar)", color: "var(--p-warn)", borderRadius: 2, font: "500 10px var(--font-mono)", letterSpacing: ".1em", whiteSpace: "nowrap" }}>SIN TAG</span>
+    border: "1px dashed var(--p-warn-bar)", color: "var(--p-warn)", borderRadius: 2, font: "500 12px var(--font-mono)", letterSpacing: ".1em", whiteSpace: "nowrap" }}>SIN TAG</span>
 );
 
 /* ---------- bodega ---------- */
@@ -441,13 +441,13 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
     <section id="bodega" aria-label="Bodega" className="tarjeta" style={{ order: 4, scrollMarginTop: 80 }}>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px 16px", padding: padX }}>
         <Titulo>Bodega</Titulo>
-        {!cargando && d.materiales.length > 0 && <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)" }}>{lista.length} de {d.materiales.length} materiales</span>}
+        {!cargando && d.materiales.length > 0 && <span style={{ font: "400 14px var(--font-body)", color: "var(--p-ink2)" }}>{lista.length} de {d.materiales.length} materiales</span>}
         <div style={{ flex: 1 }} />
         <label style={{ display: "flex", alignItems: "center", gap: 8, height: 44, padding: "0 12px", width: movil ? "100%" : 320,
           background: "var(--p-sunk)", border: "1px solid var(--p-line)", borderRadius: 2 }}>
           <Ico de={Search} color="var(--p-ink2)" />
           <input value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar material, ID o proveedor" aria-label="Buscar material"
-            style={{ flex: 1, minWidth: 0, height: 40, border: 0, outline: "none", background: "transparent", font: "400 15px var(--font-body)", color: "var(--p-ink)" }} />
+            style={{ flex: 1, minWidth: 0, height: 40, border: 0, outline: "none", background: "transparent", font: "400 16px var(--font-body)", color: "var(--p-ink)" }} />
         </label>
       </div>
       <div role="tablist" aria-label="Filtrar por estado" style={{ display: "flex", gap: 8, overflowX: "auto", padding: `0 ${padX}px 16px` }}>
@@ -499,8 +499,8 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
               <div style={{ display: "grid", gridTemplateColumns: "auto auto minmax(0,1fr)", gap: 16, alignItems: "end", marginTop: 10 }}>
                 <div>
                   <div style={{ font: "400 12px var(--font-body)", color: "var(--p-ink2)" }}>Stock</div>
-                  <span style={{ font: "800 26px/1 var(--font-display)", color: stockColor }}>{cant(m.stock)}</span>
-                  <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)", marginLeft: 4 }}>{m.unidad}</span>
+                  <span style={{ font: "800 28px/1 var(--font-display)", color: stockColor }}>{cant(m.stock)}</span>
+                  <span style={{ font: "400 14px var(--font-body)", color: "var(--p-ink2)", marginLeft: 4 }}>{m.unidad}</span>
                 </div>
                 <div>
                   <div style={{ font: "400 12px var(--font-body)", color: "var(--p-ink2)" }}>Mínimo</div>
@@ -508,7 +508,7 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ font: "400 12px var(--font-body)", color: "var(--p-ink2)" }}>Quiebre</div>
-                  <div style={{ font: "600 15px/1.25 var(--font-body)", color: qColor }}>{quiebre}</div>
+                  <div style={{ font: "600 16px/1.25 var(--font-body)", color: qColor }}>{quiebre}</div>
                   <div style={{ font: "400 12px/1.3 var(--font-body)", color: "var(--p-ink2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{partida}</div>
                 </div>
               </div>
@@ -541,13 +541,13 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
                   <tr key={m.material_id} style={{ background: fondo }}>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ font: "600 15px/1.25 var(--font-body)" }}>{m.nombre}</span>{!m.tag_registrado && <SinTag />}
+                        <span style={{ font: "600 16px/1.25 var(--font-body)" }}>{m.nombre}</span>{!m.tag_registrado && <SinTag />}
                       </div>
                       <div style={{ font: "400 12px/1.4 var(--font-mono)", color: "var(--p-ink2)", marginTop: 2 }}>{m.material_id} · {m.categoria}</div>
                     </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <span style={{ font: "800 22px/1 var(--font-display)", color: stockColor }}>{cant(m.stock)}</span>
-                      <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)", marginLeft: 4 }}>{m.unidad}</span>
+                      <span style={{ font: "400 14px var(--font-body)", color: "var(--p-ink2)", marginLeft: 4 }}>{m.unidad}</span>
                     </td>
                     <td style={{ textAlign: "right", width: 96, paddingTop: 8, paddingBottom: 8 }}>
                       <Minimo valor={num(m.minimo)} nombre={m.nombre} aviso={aviso} onGuardar={(v) => guardarMinimo(m.material_id, "minimo", v)} />
@@ -563,7 +563,7 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
               </tbody>
             </table>
           </div>
-          <div style={{ padding: "12px 20px", font: "400 13px var(--font-body)", color: "var(--p-ink2)", borderTop: "1px solid var(--p-line)" }}>
+          <div style={{ padding: "12px 20px", font: "400 14px var(--font-body)", color: "var(--p-ink2)", borderTop: "1px solid var(--p-line)" }}>
             Ordenado por urgencia · clic en el mínimo para editarlo
           </div>
         </>
@@ -581,7 +581,7 @@ function Proyeccion({ predicciones, cargando, movil }) {
     <section id="proyeccion" aria-label="Proyección de quiebres" className="tarjeta" style={{ ...seccion(movil, 5), scrollMarginTop: 80 }}>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "8px 16px", marginBottom: 8 }}>
         <Titulo>Proyección de quiebres</Titulo>
-        <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)" }}>Consumo RFID × programación de obra · escala 0–30 días</span>
+        <span style={{ font: "400 14px var(--font-body)", color: "var(--p-ink2)" }}>Consumo RFID × programación de obra · escala 0–30 días</span>
       </div>
       {cargando ? <div className="esqueleto" style={{ height: 120, marginTop: 12 }} />
         : orden.length === 0 ? (
@@ -593,7 +593,7 @@ function Proyeccion({ predicciones, cargando, movil }) {
           return (
             <div key={p.material_id} style={{ padding: "14px 0", borderTop: "1px solid var(--p-line)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <span style={{ flex: 1, minWidth: 140, font: "600 15px var(--font-body)" }}>{p.nombre}</span>
+                <span style={{ flex: 1, minWidth: 140, font: "600 16px var(--font-body)" }}>{p.nombre}</span>
                 <span style={{ font: "800 18px/1 var(--font-display)", color: t.fg, textTransform: "uppercase" }}>{diasTxt(dias)}</span>
                 <Chip tono={tonoUrgencia(p.urgencia)} punto={false} alto={22}>Urgencia {p.urgencia}</Chip>
               </div>
@@ -674,8 +674,8 @@ function Movimientos({ movimientos, cargando, movil }) {
   return (
     <section aria-label="Movimientos capturados" className="tarjeta" style={seccion(movil, 6)}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
-        <Titulo tam={20}>Movimientos</Titulo>
-        {movimientos.length > 0 && <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)" }}>{movimientos.length} lecturas</span>}
+        <Titulo tam={22}>Movimientos</Titulo>
+        {movimientos.length > 0 && <span style={{ font: "400 14px var(--font-body)", color: "var(--p-ink2)" }}>{movimientos.length} lecturas</span>}
       </div>
       {cargando ? <div className="esqueleto" style={{ height: 120 }} />
         : movimientos.length === 0 ? <Vacio titulo="Sin lecturas todavía" texto="Cada pasada de un material frente al lector aparece aquí en segundos." />
@@ -687,7 +687,7 @@ function Movimientos({ movimientos, cargando, movil }) {
                 <li key={`${mv.ts}|${mv.nombre}|${mv.delta}`}
                   style={{ display: "grid", gridTemplateColumns: "20px 44px minmax(0,1fr) auto", gap: 10, alignItems: "center", padding: "9px 4px", borderTop: "1px solid var(--p-line)" }}>
                   <span title="Lector RFID" style={{ display: "flex" }}><Ico de={Radio} tam={16} color="var(--p-ink2)" /></span>
-                  <span style={{ font: "600 15px var(--font-mono)", color: entra ? "var(--p-ok)" : "var(--p-ink)", textAlign: "right" }}>{entra ? "+" : "−"}{cant(Math.abs(delta))}</span>
+                  <span style={{ font: "600 16px var(--font-mono)", color: entra ? "var(--p-ok)" : "var(--p-ink)", textAlign: "right" }}>{entra ? "+" : "−"}{cant(Math.abs(delta))}</span>
                   <span style={{ minWidth: 0 }}>
                     <span style={{ display: "block", font: "600 14px/1.3 var(--font-body)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mv.nombre}</span>
                     <span style={{ display: "block", font: "400 12px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>
@@ -708,7 +708,7 @@ function Movimientos({ movimientos, cargando, movil }) {
 function Lectores({ lectores, cargando, movil }) {
   return (
     <section aria-label="Lectores en obra" className="tarjeta" style={seccion(movil, 7)}>
-      <Titulo tam={20} style={{ marginBottom: 10 }}>Lectores en obra</Titulo>
+      <Titulo tam={22} style={{ marginBottom: 10 }}>Lectores en obra</Titulo>
       {cargando ? <div className="esqueleto" style={{ height: 80 }} />
         : lectores.length === 0 ? <Vacio titulo="Ningún lector vinculado" texto="Cada lector lleva un token en su firmware. Sin token válido, el sistema no acepta sus lecturas." />
         : lectores.map((l) => {
@@ -723,16 +723,16 @@ function Lectores({ lectores, cargando, movil }) {
               <Ico de={Radio} tam={18} color="var(--p-ink2)" />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ font: "600 14px/1.3 var(--font-mono)" }}>{l.lector_id}</div>
-                <div style={{ font: "400 13px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>{l.descripcion || l.zona}</div>
+                <div style={{ font: "400 14px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>{l.descripcion || l.zona}</div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <Chip tono={tono} alto={24}>{txt}</Chip>
-                <div style={{ font: "400 11px var(--font-mono)", color: "var(--p-ink2)", marginTop: 3 }}>{detalle}</div>
+                <div style={{ font: "400 12px var(--font-mono)", color: "var(--p-ink2)", marginTop: 3 }}>{detalle}</div>
               </div>
             </div>
           );
         })}
-      <p style={{ margin: "10px 0 0", paddingTop: 10, borderTop: "1px solid var(--p-line)", font: "400 13px/1.5 var(--font-body)", color: "var(--p-ink2)" }}>
+      <p style={{ margin: "10px 0 0", paddingTop: 10, borderTop: "1px solid var(--p-line)", font: "400 14px/1.5 var(--font-body)", color: "var(--p-ink2)" }}>
         Para revocar un lector, cambia su token en la pestaña Lectores o ponle <strong style={{ color: "var(--p-ink)" }}>activo = no</strong>. Deja de escribir al instante.
       </p>
     </section>
@@ -743,7 +743,7 @@ function Lectores({ lectores, cargando, movil }) {
 function Alertas({ alertas, cargando, movil }) {
   return (
     <section aria-label="Alertas enviadas" className="tarjeta" style={seccion(movil, 8)}>
-      <Titulo tam={20} style={{ marginBottom: 10 }}>Alertas enviadas</Titulo>
+      <Titulo tam={22} style={{ marginBottom: 10 }}>Alertas enviadas</Titulo>
       {cargando ? <div className="esqueleto" style={{ height: 80 }} />
         : alertas.length === 0 ? <Vacio titulo="Ninguna alerta" texto="El agente de Acción avisa por correo y en pantalla, una vez por material y por día." />
         : (
@@ -753,7 +753,7 @@ function Alertas({ alertas, cargando, movil }) {
                 <Punto color={a.del_dia ? "var(--p-crit-bar)" : "var(--p-muted)"} style={{ marginTop: 6 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ font: "600 14px/1.3 var(--font-body)" }}>
-                    {a.nombre} <span style={{ font: "400 13px var(--font-mono)", color: "var(--p-ink2)" }}>({cant(a.stock)}/{cant(a.minimo)})</span>
+                    {a.nombre} <span style={{ font: "400 14px var(--font-mono)", color: "var(--p-ink2)" }}>({cant(a.stock)}/{cant(a.minimo)})</span>
                   </div>
                   <div style={{ font: "400 12px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>{fechaCorta(a.fecha)} · {a.correo_enviado ? "correo enviado" : "sin correo"}</div>
                 </div>

@@ -75,7 +75,7 @@ export default function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjuste
       ? ["warn", "Sin dirección de n8n: la bodega no se puede leer hasta que la configures."]
       : ["ok", `Conectado. El inventario, las predicciones y las compras de ${obra.obraId} se leen de esta planilla.`];
 
-  const nota = { font: "400 13px/1.45 var(--font-body)", color: "var(--p-ink2)" };
+  const nota = { font: "400 14px/1.45 var(--font-body)", color: "var(--p-ink2)" };
 
   return (
     <div onClick={(e) => e.target === e.currentTarget && cerrar()}
@@ -87,7 +87,7 @@ export default function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjuste
 
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "20px 24px 16px", borderBottom: "1px solid var(--p-line)" }}>
           <div style={{ flex: 1 }}>
-            <Titulo id="ajustes-titulo" tam={24}>Ajustes de la obra</Titulo>
+            <Titulo id="ajustes-titulo" tam={28}>Ajustes de la obra</Titulo>
             <div style={{ marginTop: 6, font: "400 14px var(--font-body)", color: "var(--p-ink2)" }}>
               {admin ? "Administras esta obra" : "Eres miembro de esta obra · solo lectura"}
             </div>
@@ -109,7 +109,7 @@ export default function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjuste
           <div style={{ padding: 16, background: "var(--p-sunk)", border: "1px solid var(--p-line)", borderRadius: 6 }}>
             <div style={{ font: "600 14px var(--font-body)" }}>Código para invitar</div>
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginTop: 8 }}>
-              <span style={{ flex: 1, minWidth: 180, font: "600 26px/1 var(--font-mono)", letterSpacing: ".06em", color: "var(--p-signal)" }}>{obra.codigo}</span>
+              <span style={{ flex: 1, minWidth: 180, font: "600 28px/1 var(--font-mono)", letterSpacing: ".06em", color: "var(--p-signal)" }}>{obra.codigo}</span>
               <Boton variante="borde" tam="sm" onClick={copiar} icono={<Ico de={Copy} />}>{copiado ? "Copiado" : "Copiar"}</Boton>
               {admin && <Boton variante="fantasma" tam="sm" onClick={rotar} icono={<Ico de={RefreshCw} />} title="Invalida el código actual">Cambiar</Boton>}
             </div>
@@ -117,12 +117,12 @@ export default function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjuste
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Campo etiqueta="Nombre de la obra" value={b.nombre} disabled={!admin} placeholder="Edificio Los Aromos"
+            <Campo etiqueta="Nombre de la obra" value={b.nombre} disabled={!admin} placeholder="Nombre de la obra"
               onChange={(e) => setB({ ...b, nombre: e.target.value })} />
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span className="campo__etiqueta">Identificador de obra</span>
               <div style={{ display: "flex", alignItems: "center", gap: 10, height: 44, padding: "0 14px", background: "var(--p-sunk)",
-                border: "1px solid var(--p-line)", borderRadius: 2, font: "600 15px var(--font-mono)" }}>
+                border: "1px solid var(--p-line)", borderRadius: 2, font: "600 16px var(--font-mono)" }}>
                 <Ico de={Lock} tam={14} color="var(--p-ink2)" />{obra.obraId}
               </div>
               <span style={nota}>Fijo. Es la llave con que n8n encuentra la planilla de esta obra; cambiarlo dejaría huérfano el inventario ya registrado.</span>
@@ -156,7 +156,7 @@ export default function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjuste
                 <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid var(--p-line)" }}>
                   <Punto color={o.base ? "var(--p-ok-bar)" : "var(--p-warn-bar)"} title={o.base ? "Conectada a n8n" : "Sin dirección de n8n"} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ font: "600 15px var(--font-body)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.nombre}</div>
+                    <div style={{ font: "600 16px var(--font-body)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.nombre}</div>
                     <div style={{ font: "400 12px var(--font-mono)", color: "var(--p-ink2)" }}>{o.obraId} · {o.rol === "admin" ? "administras" : "miembro"}</div>
                   </div>
                   {actual
