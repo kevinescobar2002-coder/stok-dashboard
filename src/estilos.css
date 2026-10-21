@@ -165,65 +165,6 @@ input, select, button, textarea { font: inherit; }
 
 .esqueleto { background: var(--p-track); border-radius: 2px; animation: respira 1.4s ease-in-out infinite; }
 
-/* ---------- intro del pitch ---------- */
-.intro {
-  position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 32px 20px; overflow: hidden; cursor: pointer; color: var(--stok-niebla);
-  background: radial-gradient(ellipse at 50% 38%, #16227A 0%, var(--stok-marino) 55%, var(--stok-marino-deep) 100%);
-  transition: opacity 600ms var(--ease);
-}
-.intro--sale { opacity: 0; pointer-events: none; }
-.intro__centro { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 22px; max-width: 900px; }
-.intro__marca { position: relative; display: grid; place-items: center; width: 280px; height: 170px; }
-.intro__logo { position: relative; height: 92px; width: auto; animation: intro-logo 900ms var(--ease) both; }
-.intro__onda {
-  position: absolute; left: 50%; top: 50%; width: 150px; height: 150px; margin: -75px 0 0 -75px;
-  border: 2px solid var(--stok-signal); border-radius: 9999px; opacity: 0;
-  animation: intro-onda 2.2s var(--ease) var(--retraso, 0s) infinite;
-}
-.intro__ceja { font: 400 13px/1 var(--font-mono); letter-spacing: .22em; text-transform: uppercase; color: var(--stok-signal); }
-.intro__frase {
-  display: flex; flex-direction: column; gap: 4px; margin: 0;
-  font: 800 clamp(30px, min(7vw, 8.5vh), 76px)/.95 var(--font-display); text-transform: uppercase; letter-spacing: -.01em;
-}
-.intro__naranja { color: var(--stok-signal); }
-.intro__lema { margin: 0; font: 400 clamp(16px, 2.2vw, 21px)/1.4 var(--font-body); color: var(--stok-mist-2); }
-.intro__aparece { display: block; animation: intro-sube 700ms var(--ease) var(--retraso, 0s) both; }
-.intro__pie { position: absolute; left: 0; right: 0; bottom: 32px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.intro__barra { width: min(320px, 70vw); height: 3px; background: rgba(245, 98, 15, .18); overflow: hidden; }
-.intro__barra span { display: block; height: 100%; background: var(--stok-signal); transform-origin: left; animation: intro-barra var(--dur, 4200ms) linear both; }
-.intro__saltar {
-  background: transparent; border: 0; cursor: pointer; padding: 10px 14px; min-height: 44px;
-  font: 600 14px var(--font-body); color: var(--stok-mist-2);
-}
-.intro__saltar:hover { color: #fff; }
-
-@keyframes intro-logo { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
-@keyframes intro-onda { 0% { opacity: .75; transform: scale(.55); } 100% { opacity: 0; transform: scale(2.3); } }
-@keyframes intro-sube { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-@keyframes intro-barra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-
-/* ---------- modo suspensión: bodega apagada ---------- */
-.suspendido {
-  position: relative; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 40px 20px 110px; text-align: center; color: var(--stok-niebla); font-family: var(--font-body);
-  background: radial-gradient(ellipse at 50% 35%, #111A5C 0%, var(--stok-marino) 50%, var(--stok-marino-deep) 100%);
-}
-.suspendido__centro { display: flex; flex-direction: column; align-items: center; gap: 18px; max-width: 720px; }
-.suspendido__agente { width: clamp(130px, 22vh, 200px); height: auto; opacity: .92; animation: suspendido-cabizbajo 5s ease-in-out infinite; transform-origin: 50% 90%; }
-.suspendido__ceja { font: 400 13px/1 var(--font-mono); letter-spacing: .22em; text-transform: uppercase; color: var(--stok-acero, #8A93AD); }
-.suspendido__titulo { margin: 0; font: 800 clamp(40px, 8vw, 88px)/.95 var(--font-display); text-transform: uppercase; letter-spacing: -.01em; }
-.suspendido__puntos span { animation: suspendido-punto 1.6s infinite both; }
-.suspendido__puntos span:nth-child(2) { animation-delay: .25s; }
-.suspendido__puntos span:nth-child(3) { animation-delay: .5s; }
-.suspendido__texto { margin: 0; max-width: 520px; font: 400 clamp(16px, 2.2vw, 20px)/1.5 var(--font-body); color: var(--stok-mist-2); }
-.suspendido__pie {
-  position: absolute; left: 0; right: 0; bottom: 32px; display: flex; flex-direction: column; align-items: center; gap: 10px;
-  font: 400 14px var(--font-body); color: var(--stok-mist-2); opacity: .8;
-}
-@keyframes suspendido-punto { 0%, 20% { opacity: .15; } 50% { opacity: 1; } 100% { opacity: .15; } }
-@keyframes suspendido-cabizbajo { 0%, 100% { transform: rotate(0deg) translateY(0); } 50% { transform: rotate(-3deg) translateY(4px); } }
-
 /* ---------- animaciones ---------- */
 @keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(16, 160, 111, .55); } 70% { box-shadow: 0 0 0 6px rgba(16, 160, 111, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 160, 111, 0); } }
 @keyframes escaneo { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
@@ -231,21 +172,7 @@ input, select, button, textarea { font: inherit; }
 @keyframes respira { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
 .pulso { animation: pulso 2s infinite; }
 .entra { animation: entra 200ms var(--ease); }
-/* Lectura recién capturada: entra y se ilumina un momento en naranja. */
-@keyframes nuevo { from { background: var(--p-signal-tint); } to { background: transparent; } }
-.mov-nuevo { animation: entra 250ms var(--ease), nuevo 2.4s var(--ease); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  /* La portada del pitch se anima igual (ver Intro.jsx). */
-  .intro { transition: opacity 600ms var(--ease) !important; }
-  .intro .intro__logo { animation: intro-logo 900ms var(--ease) both !important; }
-  .intro .intro__onda { animation: intro-onda 2.2s var(--ease) var(--retraso, 0s) infinite !important; }
-  .intro .intro__aparece { animation: intro-sube 700ms var(--ease) var(--retraso, 0s) both !important; }
-  .intro .intro__barra span { animation: intro-barra var(--dur, 4200ms) linear both !important; }
-  /* Igual la bodega apagada: los puntos que titilan son parte del mensaje. */
-  .suspendido .suspendido__puntos span { animation: suspendido-punto 1.6s infinite both !important; }
-  .suspendido .suspendido__puntos span:nth-child(2) { animation-delay: .25s !important; }
-  .suspendido .suspendido__puntos span:nth-child(3) { animation-delay: .5s !important; }
-  .suspendido .suspendido__agente { animation: suspendido-cabizbajo 5s ease-in-out infinite !important; }
 }

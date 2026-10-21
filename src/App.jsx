@@ -5,8 +5,6 @@ import {
 } from "./obras";
 import { Acceso, Bienvenida, Aviso, Cargando } from "./Acceso";
 import Panel from "./Panel";
-import Intro from "./Intro";
-import { LECTOR_CAMARA, simularLectura } from "./simulacion";
 import { Toast, ahora, num, plural } from "./ui";
 import "./estilos.css";
 
@@ -20,31 +18,14 @@ import "./estilos.css";
 
    Este archivo guarda el estado y habla con Supabase y n8n.
    Lo que se ve está en Acceso.jsx, Panel.jsx y Ajustes.jsx.
+
+   Endpoints del flujo n8n (STOK · Suite automatizada v3):
+     GET  /webhook/stok/api/dashboard?obra_id=…   todo lo que pinta la pantalla
+     POST /webhook/stok/agente/prediccion         Agente 2
+     POST /webhook/stok/agente/accion             Agente 3 (correo + push)
+     POST /webhook/stok/inventario                guarda mínimos
+     POST /webhook/stok/recomendacion             aprueba / descarta compras
    ============================================================ */
-
-/* ---------- datos de demostración ----------
-   Una obra sin n8n muestra el inventario de ejemplo de Condominio Los Maitenes
-   (corte al viernes 14 de agosto de 2026). Se carga aparte, solo cuando hace
-   falta, para que no pese en el sitio de las obras que ya están conectadas. */
-const cargarDemo = async () => {
-  const { default: d } = await import("./demo-obra.json");
-  /* El lector "late" ahora: la demo no debe verse desconectada. */
-  const latido = new Date(Date.now() - 3 * 60000).toISOString();
-  /* Además del portal RFID, la demo trae la cámara de visión IA. */
-  const lectores = [...d.lectores, LECTOR_CAMARA].map((l) => ({ ...l, ultimo_latido: latido }));
-  return { ...d, lectores, agentes: { ...d.agentes, captura: { ...d.agentes.captura, lectores: lectores.length } } };
-};
-
-/* ---------- modo pitch ----------
-   Para presentar STOK: sin inicio de sesión, una portada animada y directo a
-   la sala de control con los datos de ejemplo. Nada sale a Supabase ni a n8n.
-   El acceso real sigue en la misma dirección con ?entrar al final. */
-const PITCH = !new URLSearchParams(window.location.search).has("entrar");
-const SESION_PITCH = { id: "pitch", email: "", nombre: "Jefe de Terreno" };
-const OBRA_PITCH = {
-  id: "pitch", nombre: "Condominio Los Maitenes", obraId: "MAITENES", codigo: "STOK-M4T3NS",
-  base: "", linkPlanilla: "", linkCarpeta: "", rol: "admin",
-};
 
 /* El tema se recuerda por navegador; la primera vez sigue al sistema. */
 const temaInicial = () => {
@@ -64,7 +45,6 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [vistas, setVistas] = useState([]); // alertas ya descartadas en pantalla
   const [tema, setTema] = useState(temaInicial);
-  const [intro, setIntro] = useState(PITCH);
 
   useEffect(() => {
     try { localStorage.setItem("stok-tema", tema); } catch { /* sin storage */ }
@@ -78,19 +58,6 @@ export default function App() {
   useEffect(() => { obraRef.current = obra; }, [obra]);
   const conexionRef = useRef(conexion);
   useEffect(() => { conexionRef.current = conexion; }, [conexion]);
-  /* Obra para la que ya se cargó la demo: el refresco de cada minuto no
-     debe pisar lo que se aprobó o editó mientras se recorre. */
-  const demoDe = useRef(null);
-
-  /* El dashboard abre siempre con los datos de ejemplo, también en obras
-     conectadas. "Volver a mis datos" vale para esta pestaña; al abrir de nuevo
-     vuelve la demo. La configuración de la obra no cambia en ningún caso. */
-  const [demoPedida, setDemoPedida] = useState(() => {
-    try { return sessionStorage.getItem("stok-demo") !== "0"; } catch { return true; }
-  });
-  const demoPedidaRef = useRef(demoPedida);
-  /* Con la demo puesta nada puede salir hacia n8n: son datos inventados. */
-  const enDemo = () => !obraRef.current?.base || demoPedidaRef.current;
 
   /* Avisos: título corto y, si hace falta, una línea de detalle.
      Máximo tres en pantalla para que no tapen la bodega. */
@@ -120,10 +87,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (PITCH) {
-      setSesion(SESION_PITCH); setObras([OBRA_PITCH]); setObraId(OBRA_PITCH.id); setCargando(false);
-      return;
-    }
     const entrar = async (u) => {
       setSesion({ id: u.id, email: u.email, nombre: u.user_metadata?.nombre || u.email });
       await refrescarObras(u.id);
@@ -146,7 +109,6 @@ export default function App() {
     if (!sesion || id === obraId) return;
     setObraId(id);
     setDatos(null);                 // nunca mostrar datos de la obra anterior
-    demoDe.current = null;
     setVistas([]);
     setConexion({ estado: "cambiando" });
     try { await fijarObraActiva(sesion.id, id); } catch { /* se reintenta al próximo cambio */ }
@@ -159,27 +121,12 @@ export default function App() {
     const o = obraRef.current;
     if (!o) return;
     const pedida = o.id;
-    if (enDemo()) {
-      if (demoDe.current !== pedida) {
-        const demo = await cargarDemo();
-        if (obraRef.current?.id !== pedida) return;
-        demoDe.current = pedida;
-        setDatos(demo);
-      }
-      /* En el pitch la obra se presenta como conectada: sin avisos de demo. */
-      if (PITCH) {
-        setConexion({ estado: "en_linea", hora: ahora() });
-        if (avisar) {
-          const { materiales } = await cargarDemo();
-          aviso("Bodega actualizada", `Planilla leída a las ${ahora()} · ${materiales.length} materiales.`);
-        }
-        return;
-      }
-      setConexion({ estado: "demo" });
-      if (avisar) aviso("Modo demostración", o.base ? "Ves datos de ejemplo; tu obra sigue conectada a n8n." : "Ves el inventario de ejemplo de Condominio Los Maitenes hasta que configures n8n en Ajustes.", "info");
+    if (!o.base) {
+      setDatos(null);
+      setConexion({ estado: "sin_n8n" });
+      if (avisar) aviso("Falta la dirección de n8n", "Configúrala en Ajustes para leer la planilla de la obra.", "info");
       return;
     }
-    demoDe.current = null;
     try {
       const r = await fetch(url(`/webhook/stok/api/dashboard?obra_id=${encodeURIComponent(o.obraId)}`));
       if (!r.ok) throw new Error(r.status);
@@ -199,35 +146,6 @@ export default function App() {
     }
   }, [aviso]);
 
-  const cambiarDemo = (activa) => {
-    demoPedidaRef.current = activa;
-    setDemoPedida(activa);
-    try { sessionStorage.setItem("stok-demo", activa ? "1" : "0"); } catch { /* sin storage */ }
-    demoDe.current = null;
-    setDatos(null);
-    setVistas([]);
-    setConexion({ estado: "cargando" });
-    traer();
-  };
-
-  /* ---- captura en vivo: solo con datos de ejemplo ----
-     Mientras se mira la demo, el portal y la cámara van registrando
-     movimientos. Con la pestaña oculta no se simula nada. */
-  const hayDatos = !!datos;
-  const enVivo = hayDatos && (!obra?.base || demoPedida);
-  useEffect(() => {
-    if (!enVivo) return;
-    let t;
-    const siguiente = () => {
-      t = setTimeout(() => {
-        if (!document.hidden) setDatos((d) => (d ? simularLectura(d) : d));
-        siguiente();
-      }, 3500 + Math.random() * 3000);
-    };
-    siguiente();
-    return () => clearTimeout(t);
-  }, [enVivo, obraId]);
-
   useEffect(() => {
     if (!sesion || !obra) return;
     traer();
@@ -235,19 +153,17 @@ export default function App() {
     return () => clearInterval(t);
   }, [sesion, obra, traer]);
 
+  /* Sin dirección de n8n no hay a quién llamar: se avisa en vez de fallar. */
+  const sinN8n = () => {
+    if (obraRef.current?.base) return false;
+    aviso("Falta la dirección de n8n", "Configúrala en Ajustes.", "info");
+    return true;
+  };
+
   const llamarAgente = async (cual) => {
     const o = obraRef.current;
     const nombre = cual === "prediccion" ? "Predicción" : "Acción";
-    /* En el pitch el agente "trabaja" igual que en una obra conectada. */
-    if (PITCH) {
-      aviso(`Agente de ${nombre} trabajando…`, "", "info");
-      const pendientes = (datos?.recomendaciones || []).filter((r) => r.estado === "pendiente").length;
-      setTimeout(() => aviso(cual === "prediccion" ? "Predicción recalculada" : "Revisión de compras lista",
-        cual === "prediccion" ? `${(datos?.predicciones || []).length} proyecciones contra la programación de obra.`
-          : `${pendientes} compras por decidir. El correo a jefatura ya salió.`), 1400);
-      return;
-    }
-    if (enDemo()) return aviso(`El agente de ${nombre} no corre en modo demostración`, o?.base ? "Vuelve a tus datos para usar los agentes." : "Configura la dirección de n8n en Ajustes.", "info");
+    if (sinN8n()) return;
     aviso(`Agente de ${nombre} trabajando…`, "", "info");
     try {
       const r = await fetch(url(`/webhook/stok/agente/${cual}`), {
@@ -255,19 +171,19 @@ export default function App() {
         body: JSON.stringify({ obra_id: o.obraId, disparador: "dashboard" }),
       });
       if (!r.ok) throw new Error(r.status);
+      /* El Agente 3 responde { hay_accion, mensaje }: se muestra tal cual. */
+      const j = await r.json().catch(() => ({}));
       aviso(cual === "prediccion" ? "Predicción recalculada" : "Revisión de compras lista",
-        cual === "prediccion" ? "Proyectada contra la programación de obra." : "Si había alertas, el correo ya salió.");
+        cual === "prediccion" ? "Proyectada contra la programación de obra." : j.mensaje || "Si había alertas, el correo ya salió.");
       setTimeout(() => traer(false), 1500);
     } catch { aviso(`El agente de ${nombre} no respondió`, "Revisa que el flujo de n8n esté activo.", "alert"); }
   };
 
   const guardarMinimo = async (material_id, campo, valor) => {
     const previo = (datos?.materiales || []).find((x) => x.material_id === material_id);
+    if (!previo || sinN8n()) return;
     setDatos((d) => ({ ...d, materiales: d.materiales.map((m) => (m.material_id === material_id ? { ...m, [campo]: num(valor) } : m)) }));
     const o = obraRef.current;
-    if (!previo) return;
-    if (PITCH) return aviso("Mínimo actualizado", `${previo.nombre} · mínimo ${num(valor)}.`);
-    if (enDemo()) return aviso("Mínimo actualizado", "Modo demostración: el cambio no se guarda.", "info");
     try {
       const r = await fetch(url("/webhook/stok/inventario"), {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -286,12 +202,12 @@ export default function App() {
     /* Sin conexión no se aprueba: la compra quedaría solo en esta pantalla. */
     if (estado === "aprobada" && conexionRef.current.estado === "sin_conexion")
       return aviso("No se puede aprobar sin conexión", "Espera a que vuelva la conexión con n8n.", "alert");
+    if (sinN8n()) return;
     const fijar = (e) => setDatos((d) => ({ ...d, recomendaciones: d.recomendaciones.map((r) => (r.rec_id === rec.rec_id ? { ...r, estado: e } : r)) }));
     fijar(estado);
     aviso(estado === "aprobada" ? "Compra aprobada" : "Recomendación descartada",
       estado === "aprobada" ? `${rec.nombre} · ${plural(rec.cantidad_sugerida, rec.unidad)}` : rec.nombre, estado === "aprobada" ? "ok" : "info");
     const o = obraRef.current;
-    if (enDemo()) return;
     try {
       const r = await fetch(url("/webhook/stok/recomendacion"), {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -308,13 +224,13 @@ export default function App() {
   /* Ajustes de la obra: los guarda un botón, no cada tecla. La configuración
      es compartida por todo el equipo, así que no conviene ir escribiéndola sola. */
   const guardarAjustes = async (borrador) => {
-    if (!PITCH) await guardarObra(borrador);
+    await guardarObra(borrador);
     setObras((lista) => (lista || []).map((o) => (o.id === borrador.id ? { ...o, ...borrador } : o)));
     aviso("Ajustes guardados", `${borrador.nombre} · ${borrador.obraId}`);
   };
 
   const nuevoCodigo = async () => {
-    const c = PITCH ? "STOK-" + Math.random().toString(36).slice(2, 8).toUpperCase() : await rotarCodigo(obraRef.current.id);
+    const c = await rotarCodigo(obraRef.current.id);
     setObras((lista) => (lista || []).map((o) => (o.id === obraRef.current.id ? { ...o, codigo: c } : o)));
     aviso(`Código nuevo: ${c}`, "El anterior ya no sirve para entrar.", "info");
     return c;
@@ -323,7 +239,6 @@ export default function App() {
   const dejarObra = async () => {
     const { id, nombre } = obraRef.current;
     await salirDeObra(id, sesion.id);
-    demoDe.current = null;
     setDatos(null);
     const lista = (obras || []).filter((o) => o.id !== id);
     setObras(lista);
@@ -333,10 +248,8 @@ export default function App() {
   };
 
   const salir = async () => {
-    /* En el pitch "Salir" vuelve a la portada, con los datos como al inicio. */
-    if (PITCH) { window.location.reload(); return; }
     await supabase.auth.signOut();
-    setSesion(null); setObras(null); setObraId(null); setDatos(null); demoDe.current = null;
+    setSesion(null); setObras(null); setObraId(null); setDatos(null);
   };
 
   const contenido = () => {
@@ -355,7 +268,7 @@ export default function App() {
     return (
       <Panel {...{ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso, traer,
         llamarAgente, guardarMinimo, resolverCompra, vistas, setVistas,
-        guardarAjustes, nuevoCodigo, dejarObra, tema, demoPedida, cambiarDemo, enVivo,
+        guardarAjustes, nuevoCodigo, dejarObra, tema,
         cambiarTema: () => setTema((t) => (t === "oscuro" ? "claro" : "oscuro")),
         alEntrarAObra: (nueva) => refrescarObras(sesion.id, nueva.id) }} />
     );
@@ -364,7 +277,6 @@ export default function App() {
   return (
     <div className={`stok tema-${tema}`}>
       {contenido()}
-      {intro && <Intro alTerminar={() => setIntro(false)} />}
       <div className="avisos" aria-live="polite">
         {toasts.map((t) => (
           <Toast key={t.id} titulo={t.titulo} mensaje={t.mensaje} estado={t.estado}

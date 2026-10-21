@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowUpRight, ChartLine, Check, ChevronsUpDown, CircleCheck, CircleX, FlaskConical, LogOut, MailCheck, MailX,
-  Camera, ChevronDown, ChevronUp, FileText, LayoutDashboard, BarChart3,
+  ArrowUpRight, ChartLine, Check, ChevronsUpDown, CircleCheck, CircleX, LogOut, MailCheck, MailX,
+  ChevronDown, ChevronUp, LayoutDashboard, BarChart3, Unplug,
   Moon, PackageOpen, Pencil, Plus, Radio, RefreshCw, Search, Send, Settings, Sun, WifiOff,
 } from "lucide-react";
 import Ajustes from "./Ajustes";
@@ -22,7 +22,7 @@ const irA = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smo
 
 const CONEXION = {
   en_linea: { tono: "ok", txt: (c) => `En línea · ${c.hora}`, corto: "En línea", pulso: true },
-  demo: { tono: "warn", txt: () => "Modo demostración", corto: "Demo" },
+  sin_n8n: { tono: "warn", txt: () => "Sin n8n configurado", corto: "Sin n8n" },
   sin_conexion: { tono: "crit", txt: () => "Sin conexión con n8n", corto: "Sin conexión" },
   cargando: { tono: "neutro", txt: () => "Cargando bodega…", corto: "Cargando…" },
   cambiando: { tono: "neutro", txt: () => "Cambiando de obra…", corto: "Cambiando…" },
@@ -30,7 +30,7 @@ const CONEXION = {
 
 export default function Panel(props) {
   const { sesion, salir, datos, obra, obras, cambiarObra, conexion, traer, llamarAgente, guardarMinimo, resolverCompra,
-    vistas, setVistas, aviso, tema, cambiarTema, demoPedida, cambiarDemo, enVivo } = props;
+    vistas, setVistas, aviso, tema, cambiarTema } = props;
   const w = useAncho();
   const movil = w < 760, tablet = w < 1200;
   /* La cabecera completa necesita ~1000 px; bajo eso va la compacta de dos filas. */
@@ -169,24 +169,20 @@ export default function Panel(props) {
       </header>
 
       <main style={{ display: "flex", flexDirection: "column", gap: movil ? 16 : 20, padding: movil ? "16px 12px 96px" : "24px 24px 48px", maxWidth: 1440, margin: "0 auto" }}>
-        {/* ── aviso de estado: demostración o sin conexión ── */}
+        {/* ── aviso de estado: sin n8n o sin conexión ── */}
         {offline && (
           <Aviso tono="crit" icono={WifiOff}
             titulo={`Sin conexión con n8n${conexion.desde ? " desde las " + conexion.desde : ""}`}
             texto={datos ? "Ves la última lectura guardada. Las compras no se pueden aprobar hasta que vuelva la conexión."
-              : "No pudimos leer la planilla de la obra. Revisa la dirección en Ajustes, o mira cómo funciona con datos de ejemplo."}
-            accion="Reintentar" onAccion={() => traer(true)}
-            accion2="Ver datos de ejemplo" onAccion2={() => cambiarDemo(true)} />
+              : "No pudimos leer la planilla de la obra. Revisa la dirección en Ajustes y que el flujo de n8n esté activo."}
+            accion="Reintentar" onAccion={() => traer(true)} />
         )}
-        {conexion.estado === "demo" && (demoPedida && obra.base ? (
-          <Aviso tono="warn" icono={FlaskConical} titulo="Estás viendo datos de ejemplo"
-            texto="Inventario de ejemplo de Condominio Los Maitenes (corte al 14 de agosto). Tu obra sigue conectada a n8n; mientras miras la demo nada se guarda ni se envía."
-            accion="Volver a mis datos" onAccion={() => cambiarDemo(false)} />
-        ) : (
-          <Aviso tono="warn" icono={FlaskConical} titulo="Modo demostración"
-            texto="Esta obra aún no tiene n8n configurado. Ves el inventario de ejemplo de Condominio Los Maitenes (corte al 14 de agosto); nada se guarda ni se envía."
+        {conexion.estado === "sin_n8n" && (
+          <Aviso tono="warn" icono={Unplug} titulo="Esta obra aún no tiene n8n"
+            texto={admin ? "Pega la dirección de n8n en Ajustes y la bodega se lee sola desde la planilla de la obra."
+              : "El administrador de la obra debe configurar la dirección de n8n en Ajustes."}
             accion={admin ? "Configurar n8n" : null} onAccion={abrirAjustes} />
-        ))}
+        )}
 
         {/* ── alerta del día ── */}
         {alertaViva && (
@@ -254,12 +250,11 @@ export default function Panel(props) {
         <div style={movil ? { display: "flex", flexDirection: "column", gap: 16 }
           : { display: "grid", gridTemplateColumns: tablet ? "minmax(0,1.5fr) minmax(0,1fr)" : "minmax(0,1.7fr) minmax(0,1fr)", gap: 20, alignItems: "start" }}>
           <div style={movil ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
-            <Bodega {...{ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso }}
-              verDemo={conexion.estado === "demo" ? null : () => cambiarDemo(true)} />
+            <Bodega {...{ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso }} />
             <Proyeccion predicciones={d.predicciones} cargando={cargando} movil={movil} />
           </div>
           <div style={movil ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
-            <Movimientos movimientos={d.movimientos} cargando={cargando} movil={movil} enVivo={enVivo} />
+            <Movimientos movimientos={d.movimientos} cargando={cargando} movil={movil} />
             <Compras recomendaciones={d.recomendaciones} pendientes={pendientes} monto={monto} cargando={cargando} movil={movil} resolverCompra={resolverCompra} />
             <Lectores lectores={d.lectores || []} cargando={cargando} movil={movil} />
             <Alertas alertas={d.alertas} cargando={cargando} movil={movil} />
@@ -273,7 +268,6 @@ export default function Panel(props) {
 
       {verAjustes && (
         <Ajustes obra={obra} obras={obras || []} cambiarObra={cambiarObra} aviso={aviso} movil={movil} conexion={conexion}
-          demoPedida={demoPedida} cambiarDemo={(v) => { setVerAjustes(false); cambiarDemo(v); }}
           guardarAjustes={props.guardarAjustes} nuevoCodigo={props.nuevoCodigo}
           dejarObra={props.dejarObra} alEntrarAObra={props.alEntrarAObra} soloUnaObra={(obras || []).length <= 1}
           cerrar={() => { setVerAjustes(false); traer(); }} />
@@ -423,7 +417,7 @@ const SinTag = () => (
 );
 
 /* ---------- bodega ---------- */
-function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso, verDemo }) {
+function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso }) {
   const padX = movil ? 16 : 20;
   /* En el celular la lista parte plegada: los más urgentes y el resto a un toque. */
   const [abierta, setAbierta] = useState(false);
@@ -483,11 +477,6 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
         <div style={{ borderTop: "1px solid var(--p-line)" }}>
           <Vacio centrado icono={PackageOpen} titulo="La bodega aún no responde"
             texto="Configura la dirección de n8n en Ajustes. El inventario se lee solo desde la planilla de la obra." />
-          {verDemo && (
-            <div style={{ display: "flex", justifyContent: "center", paddingBottom: 40, marginTop: -24 }}>
-              <Boton variante="borde" tam="sm" onClick={verDemo} icono={<Ico de={FlaskConical} />}>Ver datos de ejemplo</Boton>
-            </div>
-          )}
         </div>
       ) : lista.length === 0 ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "40px 24px", borderTop: "1px solid var(--p-line)", textAlign: "center" }}>
@@ -679,41 +668,30 @@ function Compras({ recomendaciones, pendientes, monto, cargando, movil, resolver
 }
 
 /* ---------- movimientos ----------
-   Cada lectura dice quién la capturó: el portal RFID, la cámara de visión IA
-   o, en el historial de la planilla, un vale de bodega escrito a mano. */
-const ORIGEN = {
-  rfid: { icono: Radio, txt: "Portal RFID" },
-  camara: { icono: Camera, txt: "Cámara IA" },
-  vale: { icono: FileText, txt: "Vale de bodega" },
-};
-
-function Movimientos({ movimientos, cargando, movil, enVivo }) {
+   Cada lectura viene de la pestaña Movimientos: la escribe el Agente 1
+   cuando un lector RFID autenticado ve pasar un material. */
+function Movimientos({ movimientos, cargando, movil }) {
   return (
     <section aria-label="Movimientos capturados" className="tarjeta" style={seccion(movil, 6)}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
         <Titulo tam={20}>Movimientos</Titulo>
-        {enVivo
-          ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 24, padding: "0 9px", borderRadius: 2, background: "var(--p-ok-tint)",
-              color: "var(--p-ok)", font: "600 12px var(--font-body)" }}><Punto color="var(--p-ok-bar)" tam={7} pulso />En vivo</span>
-          : movimientos.length > 0 && <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)" }}>{movimientos.length} lecturas</span>}
+        {movimientos.length > 0 && <span style={{ font: "400 13px var(--font-body)", color: "var(--p-ink2)" }}>{movimientos.length} lecturas</span>}
       </div>
       {cargando ? <div className="esqueleto" style={{ height: 120 }} />
         : movimientos.length === 0 ? <Vacio titulo="Sin lecturas todavía" texto="Cada pasada de un material frente al lector aparece aquí en segundos." />
         : (
-          <ul aria-live={enVivo ? "polite" : undefined} style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 340, overflow: "auto" }}>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 340, overflow: "auto" }}>
             {movimientos.map((mv) => {
               const delta = num(mv.delta), entra = delta >= 0;
-              const o = ORIGEN[mv.origen] || ORIGEN.vale;
-              const destino = mv.origen ? String(mv.lector || "").split(" · ").slice(1).join(" · ") : mv.lector;
               return (
-                <li key={mv.id || `${mv.ts}|${mv.nombre}|${mv.delta}`} className={mv.origen ? "mov-nuevo" : undefined}
+                <li key={`${mv.ts}|${mv.nombre}|${mv.delta}`}
                   style={{ display: "grid", gridTemplateColumns: "20px 44px minmax(0,1fr) auto", gap: 10, alignItems: "center", padding: "9px 4px", borderTop: "1px solid var(--p-line)" }}>
-                  <span title={o.txt} style={{ display: "flex" }}><Ico de={o.icono} tam={16} color={mv.origen ? "var(--p-signal)" : "var(--p-ink2)"} /></span>
+                  <span title="Lector RFID" style={{ display: "flex" }}><Ico de={Radio} tam={16} color="var(--p-ink2)" /></span>
                   <span style={{ font: "600 15px var(--font-mono)", color: entra ? "var(--p-ok)" : "var(--p-ink)", textAlign: "right" }}>{entra ? "+" : "−"}{cant(Math.abs(delta))}</span>
                   <span style={{ minWidth: 0 }}>
                     <span style={{ display: "block", font: "600 14px/1.3 var(--font-body)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mv.nombre}</span>
                     <span style={{ display: "block", font: "400 12px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>
-                      {o.txt} · {mv.direccion === "entrada" ? "entrada" : "salida"} · queda {cant(mv.stock)}{destino ? ` · ${destino}` : ""}
+                      {mv.lector || "Lector RFID"} · {mv.direccion === "entrada" ? "entrada" : "salida"} · queda {cant(mv.stock)}
                     </span>
                   </span>
                   <span style={{ font: "400 12px var(--font-mono)", color: "var(--p-ink2)" }}>{hora(mv.ts)}</span>
