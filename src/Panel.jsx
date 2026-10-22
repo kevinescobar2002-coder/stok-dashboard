@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight, ChartLine, Check, ChevronsUpDown, CircleCheck, CircleX, LogOut, MailCheck, MailX,
-  ChevronDown, ChevronUp, LayoutDashboard, BarChart3, Unplug,
+  ChevronDown, ChevronUp, Unplug,
   Moon, PackageOpen, Pencil, Plus, Radio, RefreshCw, Search, Send, Settings, Sun, WifiOff,
 } from "lucide-react";
 import Ajustes from "./Ajustes";
 import Graficos from "./Graficos";
 import {
-  Boton, Ceja, Chip, Ico, Logo, Punto, TONO, Titulo, Vacio,
+  Boton, Captura, Ceja, Chip, Ico, Logo, Plegable, Punto, TONO, Vacio, useSecciones,
   cant, clp, estadoDe, fechaCorta, hora, num, plural, tonoUrgencia, useAncho,
 } from "./ui";
 
 /* ============================================================ PANEL
-   Orden de lectura: lo urgente primero. En el celular la grilla de dos
-   columnas se disuelve (display: contents) y cada sección toma su lugar
-   con `order`: alerta → KPIs → compras → bodega → el resto. */
+   Orden de lectura: arriba, en grande, cuántos movimientos va capturando
+   la obra; después la alerta del día y las acciones. Todo el detalle
+   (bodega, proyección, compras, lectores…) va en secciones desplegables
+   que parten cerradas. */
 
 const VACIO = { materiales: [], movimientos: [], predicciones: [], recomendaciones: [], alertas: [], lectores: [], agentes: {} };
 const diasTxt = (d) => (d === 0 ? "Quiebra hoy" : d === 1 ? "1 día" : `${d} días`);
-const irA = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
 const CONEXION = {
   en_linea: { tono: "ok", txt: (c) => `En línea · ${c.hora}`, corto: "En línea", pulso: true },
@@ -40,7 +40,8 @@ export default function Panel(props) {
   const [fEstado, setFEstado] = useState("todos");
   const [verAjustes, setVerAjustes] = useState(false);
   const [selector, setSelector] = useState(false);
-  const [pestana, setPestana] = useState("resumen");
+  const { abiertas, alternar } = useSecciones();
+  const sec = (id) => ({ id, movil, abierta: !!abiertas[id], alternar: () => alternar(id) });
 
   const cargando = !datos && (conexion.estado === "cargando" || conexion.estado === "cambiando");
   const offline = conexion.estado === "sin_conexion";
@@ -60,6 +61,8 @@ export default function Panel(props) {
   const monto = pendientes.reduce((s, r) => s + num(r.costo_estimado), 0);
   const quiebre7 = d.predicciones.filter((p) => num(p.dias_para_quiebre) <= 7).length;
   const sinTag = d.materiales.filter((m) => !m.tag_registrado).length;
+  const lectoresEnLinea = (d.lectores || []).filter((l) => l.activo && l.ultimo_latido && Date.now() - new Date(l.ultimo_latido) < 10 * 60000).length;
+  const sinLectura = "sin lectura";
 
   const lista = useMemo(() => {
     const q = buscar.trim().toLowerCase();
@@ -184,6 +187,9 @@ export default function Panel(props) {
             accion={admin ? "Configurar n8n" : null} onAccion={abrirAjustes} />
         )}
 
+        {/* ── portada: movimientos capturados ── */}
+        <Captura d={d} cargando={cargando} movil={movil} />
+
         {/* ── alerta del día ── */}
         {alertaViva && (
           <section aria-label="Alerta del día" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px 20px",
@@ -204,18 +210,6 @@ export default function Panel(props) {
           </section>
         )}
 
-        {/* ── indicadores ── */}
-        <section aria-label="Indicadores" style={{ display: "grid", gridTemplateColumns: movil ? "repeat(2,minmax(0,1fr))" : "repeat(4,minmax(0,1fr))", gap: movil ? 8 : 16 }}>
-          <Kpi movil={movil} etiqueta="Materiales con tag" valor={sinCifras ? "—" : d.materiales.length}
-            nota={sinCifras ? "sin lectura" : sinTag ? `${sinTag} sin tag registrado` : "todos registrados"} onClick={() => { setFEstado("todos"); irA("bodega"); }} />
-          <Kpi movil={movil} etiqueta="Bajo el mínimo" valor={sinCifras ? "—" : conteo.critico} tono={sinCifras ? null : conteo.critico ? "crit" : "ok"} relleno={conteo.critico > 0}
-            nota="ahora mismo en bodega" onClick={() => { setFEstado("critico"); irA("bodega"); }} />
-          <Kpi movil={movil} etiqueta="Quiebran en 7 días" valor={sinCifras ? "—" : quiebre7} tono={sinCifras ? null : quiebre7 ? "warn" : "ok"} punto={quiebre7 > 0}
-            nota="según la programación" onClick={() => irA("proyeccion")} />
-          <Kpi movil={movil} etiqueta="Compras por decidir" valor={sinCifras ? "—" : pendientes.length} tono={sinCifras ? null : pendientes.length ? "signal" : "ok"} relleno={pendientes.length > 0}
-            nota={sinCifras ? "sin lectura" : pendientes.length ? `${clp(monto)} estimado` : "sin pendientes"} onClick={() => irA("compras")} />
-        </section>
-
         {/* ── acciones ── */}
         <section aria-label="Acciones" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px" }}>
           <div style={movil ? { display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8, width: "100%" } : { display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -231,39 +225,40 @@ export default function Panel(props) {
           </div>
         </section>
 
-        {/* ── pestañas: el resumen operativo o los gráficos ── */}
-        <div role="tablist" aria-label="Vista del panel" style={{ display: "flex", gap: 4, padding: 4, alignSelf: movil ? "stretch" : "flex-start",
-          background: "var(--p-card)", border: "1px solid var(--p-line)", borderRadius: 2 }}>
-          {[["resumen", "Resumen", LayoutDashboard], ["graficos", "Gráficos", BarChart3]].map(([k, txt, icono]) => (
-            <button key={k} type="button" role="tab" aria-selected={pestana === k} onClick={() => setPestana(k)}
-              style={{ flex: movil ? 1 : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 40, padding: "0 18px",
-                border: 0, borderRadius: 2, cursor: "pointer", font: "600 14px var(--font-body)",
-                background: pestana === k ? "var(--p-ink)" : "transparent", color: pestana === k ? "var(--p-page)" : "var(--p-ink)" }}>
-              <Ico de={icono} />{txt}
-            </button>
-          ))}
-        </div>
-
-        {pestana === "graficos" ? (
-          cargando ? <div className="esqueleto" style={{ height: 320 }} /> : <Graficos d={d} movil={movil} />
-        ) : (
-        <div style={movil ? { display: "flex", flexDirection: "column", gap: 16 }
-          : { display: "grid", gridTemplateColumns: tablet ? "minmax(0,1.5fr) minmax(0,1fr)" : "minmax(0,1.7fr) minmax(0,1fr)", gap: 20, alignItems: "start" }}>
-          <div style={movil ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
+        {/* ── el detalle: secciones desplegables, cerradas al entrar ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: movil ? 12 : 16 }}>
+          <Plegable titulo="Movimientos" {...sec("movimientos")}
+            resumen={sinCifras ? sinLectura : `${d.movimientos.length} lecturas recientes`}>
+            <Movimientos movimientos={d.movimientos} cargando={cargando} />
+          </Plegable>
+          <Plegable titulo="Compras por decidir" {...sec("compras")}
+            resumen={sinCifras ? sinLectura : pendientes.length
+              ? <strong style={{ color: "var(--p-signal)" }}>{pendientes.length} pendientes · {clp(monto)}</strong> : "sin pendientes"}>
+            <Compras recomendaciones={d.recomendaciones} cargando={cargando} movil={movil} resolverCompra={resolverCompra} />
+          </Plegable>
+          <Plegable titulo="Bodega" sinRelleno {...sec("bodega")}
+            resumen={sinCifras ? sinLectura : `${d.materiales.length} materiales · ${conteo.critico} bajo el mínimo${sinTag ? ` · ${sinTag} sin tag` : ""}`}>
             <Bodega {...{ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso }} />
-            <Proyeccion predicciones={d.predicciones} cargando={cargando} movil={movil} />
-          </div>
-          <div style={movil ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
-            <Movimientos movimientos={d.movimientos} cargando={cargando} movil={movil} />
-            <Compras recomendaciones={d.recomendaciones} pendientes={pendientes} monto={monto} cargando={cargando} movil={movil} resolverCompra={resolverCompra} />
-            <Lectores lectores={d.lectores || []} cargando={cargando} movil={movil} />
-            <Alertas alertas={d.alertas} cargando={cargando} movil={movil} />
-            <p style={{ order: 9, margin: 0, font: "400 14px/1.55 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>
-              La planilla de la obra manda. STOK la lee cada 60 segundos, proyecta contra la programación y avisa cuando corresponde. Nadie cuenta a mano.
-            </p>
-          </div>
+          </Plegable>
+          <Plegable titulo="Proyección de quiebres" {...sec("proyeccion")}
+            resumen={sinCifras ? sinLectura : `${quiebre7} quiebran en 7 días · ${d.predicciones.length} proyecciones`}>
+            <Proyeccion predicciones={d.predicciones} cargando={cargando} />
+          </Plegable>
+          <Plegable titulo="Gráficos" {...sec("graficos")} resumen="stock por estado, compras por prioridad, lecturas por hora y quiebres">
+            {cargando ? <div className="esqueleto" style={{ height: 320 }} /> : <Graficos d={d} movil={movil} />}
+          </Plegable>
+          <Plegable titulo="Lectores en obra" {...sec("lectores")}
+            resumen={sinCifras ? sinLectura : `${lectoresEnLinea} de ${(d.lectores || []).length} en línea`}>
+            <Lectores lectores={d.lectores || []} cargando={cargando} />
+          </Plegable>
+          <Plegable titulo="Alertas enviadas" {...sec("alertas")}
+            resumen={sinCifras ? sinLectura : `${d.alertas.filter((a) => a.del_dia).length} hoy · ${d.alertas.length} recientes`}>
+            <Alertas alertas={d.alertas} cargando={cargando} />
+          </Plegable>
+          <p style={{ margin: 0, font: "400 14px/1.55 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>
+            La planilla de la obra manda. STOK la lee cada 60 segundos, proyecta contra la programación y avisa cuando corresponde. Nadie cuenta a mano.
+          </p>
         </div>
-        )}
       </main>
 
       {verAjustes && (
@@ -345,30 +340,12 @@ function Aviso({ tono, icono, titulo, texto, accion, onAccion, accion2, onAccion
   );
 }
 
-function Kpi({ etiqueta, valor, nota, tono, relleno, punto, onClick, movil }) {
-  const color = tono === "signal" ? "var(--p-signal)" : tono ? TONO[tono].fg : "var(--p-ink)";
-  const borde = !relleno ? "var(--p-line)" : tono === "signal" ? "var(--stok-signal)" : TONO[tono].dot;
-  const fondo = !relleno ? "var(--p-card)" : tono === "signal" ? "var(--p-signal-tint)" : TONO[tono].bg;
-  const marca = tono === "signal" ? "var(--stok-signal)" : tono && tono !== "ok" ? TONO[tono].dot : null;
-  return (
-    <button type="button" className="kpi" onClick={onClick} style={{ padding: movil ? 14 : "18px 20px", background: fondo, border: `1px solid ${borde}` }}>
-      <span style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
-        <span style={{ flex: 1, font: "600 14px/1.25 var(--font-body)" }}>{etiqueta}</span>
-        {(relleno || punto) && marca && <Punto color={marca} />}
-      </span>
-      <span style={{ font: `800 ${movil ? 40 : 56}px/.95 var(--font-display)`, letterSpacing: "-.01em", color }}>{valor}</span>
-      <span style={{ font: "400 14px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>{nota}</span>
-    </button>
-  );
-}
 
 const Enlace = ({ href, children }) => (
   <a href={href} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: 44 }}>
     {children}<Ico de={ArrowUpRight} tam={14} />
   </a>
 );
-
-const seccion = (movil, order) => ({ order, padding: movil ? 16 : 20 });
 
 /* Una obra real trae decenas de proyecciones y compras: se muestran las más
    urgentes (ya vienen ordenadas) y el resto queda a un clic. */
@@ -438,9 +415,8 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
   };
 
   return (
-    <section id="bodega" aria-label="Bodega" className="tarjeta" style={{ order: 4, scrollMarginTop: 80 }}>
+    <div>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px 16px", padding: padX }}>
-        <Titulo>Bodega</Titulo>
         {!cargando && d.materiales.length > 0 && <span style={{ font: "400 14px var(--font-body)", color: "var(--p-ink2)" }}>{lista.length} de {d.materiales.length} materiales</span>}
         <div style={{ flex: 1 }} />
         <label style={{ display: "flex", alignItems: "center", gap: 8, height: 44, padding: "0 12px", width: movil ? "100%" : 320,
@@ -568,19 +544,18 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
           </div>
         </>
       )}
-    </section>
+    </div>
   );
 }
 
 /* ---------- proyección de quiebres ---------- */
-function Proyeccion({ predicciones, cargando, movil }) {
+function Proyeccion({ predicciones, cargando }) {
   const [todas, setTodas] = useState(false);
   const orden = [...predicciones].sort((a, b) => num(a.dias_para_quiebre) - num(b.dias_para_quiebre));
   const visibles = todas ? orden : orden.slice(0, LIMITE.proyeccion);
   return (
-    <section id="proyeccion" aria-label="Proyección de quiebres" className="tarjeta" style={{ ...seccion(movil, 5), scrollMarginTop: 80 }}>
+    <div>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "8px 16px", marginBottom: 8 }}>
-        <Titulo>Proyección de quiebres</Titulo>
         <span style={{ font: "400 14px var(--font-body)", color: "var(--p-ink2)" }}>Consumo RFID × programación de obra · escala 0–30 días</span>
       </div>
       {cargando ? <div className="esqueleto" style={{ height: 120, marginTop: 12 }} />
@@ -609,23 +584,19 @@ function Proyeccion({ predicciones, cargando, movil }) {
           );
         })}
         <VerMas total={orden.length} visibles={visibles.length} todas={todas} setTodas={setTodas} que="proyecciones" /></>)}
-    </section>
+    </div>
   );
 }
 
 /* ---------- compras recomendadas ---------- */
-function Compras({ recomendaciones, pendientes, monto, cargando, movil, resolverCompra }) {
+function Compras({ recomendaciones, cargando, movil, resolverCompra }) {
   const [todas, setTodas] = useState(false);
   const PR = { alta: 0, media: 1, baja: 2 };
   const orden = [...recomendaciones].sort((a, b) =>
     (a.estado === "pendiente" ? 0 : 1) - (b.estado === "pendiente" ? 0 : 1) || (PR[a.prioridad] ?? 3) - (PR[b.prioridad] ?? 3));
   const visibles = todas ? orden : orden.slice(0, LIMITE.compras);
   return (
-    <section id="compras" aria-label="Compras por decidir" className="tarjeta" style={{ ...seccion(movil, 3), scrollMarginTop: 80 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-        <Titulo>Compras por decidir</Titulo>
-        {pendientes.length > 0 && <span style={{ font: "600 14px var(--font-body)", color: "var(--p-signal)" }}>{pendientes.length} pendientes · {clp(monto)}</span>}
-      </div>
+    <div>
       {cargando ? <div className="esqueleto" style={{ height: 150 }} />
         : orden.length === 0 ? <Vacio titulo="Nada que comprar" texto="Cuando un material caiga bajo el mínimo o esté por quebrar, la recomendación aparece aquí." />
         : (
@@ -663,20 +634,16 @@ function Compras({ recomendaciones, pendientes, monto, cargando, movil, resolver
             <VerMas total={orden.length} visibles={visibles.length} todas={todas} setTodas={setTodas} que="compras" />
           </div>
         )}
-    </section>
+    </div>
   );
 }
 
 /* ---------- movimientos ----------
    Cada lectura viene de la pestaña Movimientos: la escribe el Agente 1
    cuando un lector RFID autenticado ve pasar un material. */
-function Movimientos({ movimientos, cargando, movil }) {
+function Movimientos({ movimientos, cargando }) {
   return (
-    <section aria-label="Movimientos capturados" className="tarjeta" style={seccion(movil, 6)}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
-        <Titulo tam={22}>Movimientos</Titulo>
-        {movimientos.length > 0 && <span style={{ font: "400 14px var(--font-body)", color: "var(--p-ink2)" }}>{movimientos.length} lecturas</span>}
-      </div>
+    <div>
       {cargando ? <div className="esqueleto" style={{ height: 120 }} />
         : movimientos.length === 0 ? <Vacio titulo="Sin lecturas todavía" texto="Cada pasada de un material frente al lector aparece aquí en segundos." />
         : (
@@ -700,15 +667,14 @@ function Movimientos({ movimientos, cargando, movil }) {
             })}
           </ul>
         )}
-    </section>
+    </div>
   );
 }
 
 /* ---------- lectores ---------- */
-function Lectores({ lectores, cargando, movil }) {
+function Lectores({ lectores, cargando }) {
   return (
-    <section aria-label="Lectores en obra" className="tarjeta" style={seccion(movil, 7)}>
-      <Titulo tam={22} style={{ marginBottom: 10 }}>Lectores en obra</Titulo>
+    <div>
       {cargando ? <div className="esqueleto" style={{ height: 80 }} />
         : lectores.length === 0 ? <Vacio titulo="Ningún lector vinculado" texto="Cada lector lleva un token en su firmware. Sin token válido, el sistema no acepta sus lecturas." />
         : lectores.map((l) => {
@@ -735,15 +701,14 @@ function Lectores({ lectores, cargando, movil }) {
       <p style={{ margin: "10px 0 0", paddingTop: 10, borderTop: "1px solid var(--p-line)", font: "400 14px/1.5 var(--font-body)", color: "var(--p-ink2)" }}>
         Para revocar un lector, cambia su token en la pestaña Lectores o ponle <strong style={{ color: "var(--p-ink)" }}>activo = no</strong>. Deja de escribir al instante.
       </p>
-    </section>
+    </div>
   );
 }
 
 /* ---------- alertas ---------- */
-function Alertas({ alertas, cargando, movil }) {
+function Alertas({ alertas, cargando }) {
   return (
-    <section aria-label="Alertas enviadas" className="tarjeta" style={seccion(movil, 8)}>
-      <Titulo tam={22} style={{ marginBottom: 10 }}>Alertas enviadas</Titulo>
+    <div>
       {cargando ? <div className="esqueleto" style={{ height: 80 }} />
         : alertas.length === 0 ? <Vacio titulo="Ninguna alerta" texto="El agente de Acción avisa por correo y en pantalla, una vez por material y por día." />
         : (
@@ -764,6 +729,6 @@ function Alertas({ alertas, cargando, movil }) {
             ))}
           </div>
         )}
-    </section>
+    </div>
   );
 }

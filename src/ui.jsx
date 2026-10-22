@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CircleCheck, Radio, TriangleAlert, X } from "lucide-react";
+import { ChevronDown, CircleCheck, Radio, TriangleAlert, X } from "lucide-react";
 
 /* ============================================================
    Piezas compartidas del sistema de diseño STOK.
@@ -125,6 +125,86 @@ export const Vacio = ({ titulo, texto, icono, centrado }) => (
     <span style={{ maxWidth: 440, font: "400 14px/1.5 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>{texto}</span>
   </div>
 );
+
+/* ---------- portada: la cifra grande de la sala de control ----------
+   Lo primero que se ve es cuánto está capturando la obra. El total viene de
+   n8n (resumen_movimientos, flujo v4.1); con un flujo anterior se cuenta la
+   lista, que trae solo las últimas 40 lecturas, y se dice así. */
+export function Captura({ d, cargando, movil }) {
+  const r = d.resumen_movimientos;
+  const hoyIso = new Date().toISOString().slice(0, 10);
+  const deHoy = d.movimientos.filter((m) => String(m.ts || "").slice(0, 10) === hoyIso);
+  const total = r ? num(r.total) : d.movimientos.length;
+  const hoy = r ? num(r.hoy) : deHoy.length;
+  const entradas = r ? num(r.entradas_hoy) : deHoy.filter((m) => num(m.delta) >= 0).length;
+  const salidas = r ? num(r.salidas_hoy) : hoy - entradas;
+  const ultimo = r?.ultimo || d.movimientos[0]?.ts || d.agentes?.captura?.ultimo;
+  const cifra = (v) => (cargando ? "—" : cant(v));
+  const parte = (etiqueta, valor, color) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: movil ? 0 : 96 }}>
+      <span style={{ font: "400 14px/1.2 var(--font-body)", color: "var(--p-ink2)" }}>{etiqueta}</span>
+      <span style={{ font: "800 28px/1 var(--font-display)", color: color || "var(--p-ink)" }}>{cifra(valor)}</span>
+    </div>
+  );
+  return (
+    <section aria-label="Movimientos capturados" className="tarjeta" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end",
+      gap: movil ? "20px 28px" : "24px 48px", padding: movil ? 20 : "28px 32px", borderTop: "4px solid var(--stok-signal)" }}>
+      <div style={{ flex: "1 1 260px", display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+        <Ceja>Movimientos capturados</Ceja>
+        <span style={{ font: `800 ${movil ? 56 : 80}px/.9 var(--font-display)`, letterSpacing: "-.02em", color: "var(--p-ink)" }}>
+          {cifra(total)}{!r && !cargando && total >= 40 ? "+" : ""}
+        </span>
+        <span style={{ font: "400 16px/1.4 var(--font-body)", color: "var(--p-ink2)" }}>
+          {r ? "lecturas registradas por los lectores RFID" : "últimas lecturas de los lectores RFID"}
+          {ultimo && !cargando ? ` · última a las ${hora(ultimo)}` : ""}
+        </span>
+      </div>
+      <div style={movil ? { display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 16, width: "100%" } : { display: "flex", gap: 32, flexWrap: "wrap" }}>
+        {parte("Hoy", hoy)}
+        {parte("Entradas hoy", entradas, "var(--p-ok)")}
+        {parte("Salidas hoy", salidas)}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- sección desplegable ----------
+   Bodega, proyección, compras y el resto parten cerradas: el detalle está a
+   un toque, pero no tapa la cifra que importa. El resumen va en la cabecera. */
+export function Plegable({ id, titulo, resumen, abierta, alternar, movil, sinRelleno, children }) {
+  return (
+    <section id={id} aria-label={titulo} className="tarjeta" style={{ scrollMarginTop: 80 }}>
+      <button type="button" className="plano" onClick={alternar} aria-expanded={abierta} aria-controls={`${id}-cuerpo`}
+        style={{ width: "100%", minHeight: 64, padding: movil ? "14px 16px" : "16px 20px",
+          /* En el celular el resumen va siempre bajo el título, con la flecha a la derecha. */
+          ...(movil ? { display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: "6px 12px" } : { gap: "8px 16px", flexWrap: "wrap" }) }}>
+        <Titulo>{titulo}</Titulo>
+        <span style={{ flex: 1, minWidth: movil ? 0 : 140, gridRow: movil ? 2 : undefined, font: "400 14px/1.4 var(--font-body)", color: "var(--p-ink2)" }}>{resumen}</span>
+        <Ico de={ChevronDown} tam={20} color="var(--p-ink2)"
+          style={{ gridColumn: movil ? 2 : undefined, gridRow: movil ? "1 / span 2" : undefined, transform: abierta ? "rotate(180deg)" : "none", transition: "transform 160ms" }} />
+      </button>
+      {abierta && (
+        <div id={`${id}-cuerpo`} className="entra" style={sinRelleno ? undefined : { padding: movil ? "0 16px 16px" : "0 20px 20px" }}>
+          {children}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* Qué secciones dejó abiertas cada persona: se recuerda en el navegador. */
+export function useSecciones(clave = "stok-secciones") {
+  const [abiertas, setAbiertas] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(clave)) || {}; } catch { return {}; }
+  });
+  const alternar = (id) => setAbiertas((a) => {
+    const n = { ...a, [id]: !a[id] };
+    try { localStorage.setItem(clave, JSON.stringify(n)); } catch { /* sin storage */ }
+    return n;
+  });
+  const abrir = (id) => setAbiertas((a) => (a[id] ? a : { ...a, [id]: true }));
+  return { abiertas, alternar, abrir };
+}
 
 /* Los avisos van sobre marino en los dos temas: se notan sin gritar. */
 const TOAST = {

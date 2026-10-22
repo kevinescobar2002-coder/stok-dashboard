@@ -117,7 +117,7 @@ export default function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjuste
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Campo etiqueta="Nombre de la obra" value={b.nombre} disabled={!admin} placeholder="Nombre de la obra"
+            <Campo etiqueta="Nombre de la obra" value={b.nombre} readOnly={!admin} placeholder="Nombre de la obra"
               onChange={(e) => setB({ ...b, nombre: e.target.value })} />
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span className="campo__etiqueta">Identificador de obra</span>
@@ -132,13 +132,13 @@ export default function Ajustes({ obra, obras, cambiarObra, aviso, guardarAjuste
           {/* ── conexiones ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Ceja>Conexiones</Ceja>
-            <Campo etiqueta="Dirección de n8n" value={b.base} disabled={!admin} placeholder="https://tu-equipo.app.n8n.cloud"
+            <Campo etiqueta="Dirección de n8n" value={b.base} readOnly={!admin} placeholder="https://tu-equipo.app.n8n.cloud"
               onChange={(e) => setB({ ...b, base: e.target.value.trim() })}
               pista="Sin la barra final. De aquí cuelgan la lectura de la planilla, los agentes y el registro de compras." />
-            <Campo etiqueta="Planilla de inventario (Google Sheets)" value={b.linkPlanilla} disabled={!admin}
+            <Campo etiqueta="Planilla de inventario (Google Sheets)" value={b.linkPlanilla} readOnly={!admin}
               placeholder="https://docs.google.com/spreadsheets/d/…" onChange={(e) => setB({ ...b, linkPlanilla: e.target.value.trim() })}
               pista="Propia de esta obra: n8n la abre para leer y escribir el inventario. Compártela con la cuenta de Google que usa n8n." />
-            <Campo etiqueta="Carpeta de programación de obra (Drive)" value={b.linkCarpeta} disabled={!admin}
+            <Campo etiqueta="Carpeta de programación de obra (Drive)" value={b.linkCarpeta} readOnly={!admin}
               placeholder="https://drive.google.com/drive/folders/…" onChange={(e) => setB({ ...b, linkCarpeta: e.target.value.trim() })}
               pista="El agente de Predicción lee de aquí la carta Gantt más reciente." />
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderRadius: 6,

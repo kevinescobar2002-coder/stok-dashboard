@@ -19,8 +19,9 @@
   --t-destacado: 18px;     /* botón grande, días de quiebre, estados vacíos */
   --t-titulo: 22px;        /* títulos de sección y cifras medianas */
   --t-titulo-grande: 28px; /* títulos de pantalla, stock y código de invitación */
-  --t-cifra: 40px;         /* KPI en celular */
-  --t-cifra-grande: 56px;  /* KPI en escritorio */
+  --t-cifra: 40px;         /* cifras medianas */
+  --t-cifra-grande: 56px;  /* movimientos capturados en celular */
+  --t-portada: 80px;       /* movimientos capturados en escritorio: la cifra de la portada */
 
   --stok-marino: #0A1450;
   --stok-marino-2: #131F66;
@@ -138,6 +139,9 @@ input, select, button, textarea { font: inherit; }
 .campo__input::placeholder { color: var(--p-muted); }
 .campo__input:focus { border-color: var(--p-outline); box-shadow: 0 0 0 2px var(--p-signal-tint); }
 .campo__input:disabled { background: var(--p-sunk); color: var(--p-ink2); cursor: not-allowed; }
+/* Solo lectura (bodeguero): se ve bloqueado, pero el texto se puede seleccionar y copiar. */
+.campo__input:read-only { background: var(--p-sunk); color: var(--p-ink2); cursor: text; }
+.campo__input:read-only:focus { border-color: var(--p-line); box-shadow: none; }
 .campo__input--error, .campo__input--error:focus { border-color: var(--p-crit-bar); }
 .campo__pista { font: 400 var(--t-meta)/1.45 var(--font-body); color: var(--p-ink2); }
 .campo__pista--error { color: var(--p-crit); }
