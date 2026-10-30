@@ -296,7 +296,7 @@ export default function Panel(props) {
         <NoAutorizadas movimientos={d.movimientos} cargando={cargando} movil={movil} />
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <Ceja>KPIs de la metodología</Ceja>
+          <Ceja>KPIs</Ceja>
           <KPIs d={d} cargando={cargando} movil={movil} compacto />
         </div>
         </>)}

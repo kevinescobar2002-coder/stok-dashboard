@@ -22,7 +22,7 @@ export function KPIs({ d, cargando, movil, compacto }) {
   );
   if (compacto) return grilla;
   return (
-    <Bloque titulo="KPIs de la metodología" movil={movil}
+    <Bloque titulo="KPIs" movil={movil}
       bajada="Metas iniciales: se ajustan con la línea base de la Fase 0 · «sin datos» significa que n8n aún no envía esa información">
       {grilla}
     </Bloque>
