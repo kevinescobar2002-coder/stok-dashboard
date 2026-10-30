@@ -6,18 +6,33 @@ import {
 } from "lucide-react";
 import Ajustes from "./Ajustes";
 import Graficos from "./Graficos";
+import Recepcion from "./Recepcion";
+import Integracion from "./Integracion";
+import { Lotes, Niveles } from "./Inventario";
+import { Kits, NoAutorizadas, Prestamos } from "./Salidas";
+import { ConteoCiclico, Escalera, KPIs, Merma, Reglas } from "./Control";
+import { FUENTES, esNoAutorizada, estadoOC, fuenteDe, mananaIso, hoyIso, venceExcepcion } from "./metodologia";
 import {
-  Boton, Captura, Ceja, Chip, Ico, Logo, Plegable, Punto, TONO, Vacio, useSecciones,
+  Bloque, Boton, Captura, Ceja, Chip, Ico, Logo, Metrica, Punto, TONO, Vacio,
   cant, clp, estadoDe, fechaCorta, hora, num, plural, tonoUrgencia, useAncho,
 } from "./ui";
 
 /* ============================================================ PANEL
-   Orden de lectura: arriba, en grande, cuántos movimientos va capturando
-   la obra; después la alerta del día y las acciones. Todo el detalle
-   (bodega, proyección, compras, lectores…) va en secciones desplegables
-   que parten cerradas. */
+   Las pestañas siguen el circuito de la Metodología STOK: lo que llega
+   (Recepción), lo que hay (Bodega), lo que sale (Salidas), lo que falta
+   (Compras), cómo vamos (Control) y lo que se entrega al ERP (Integración).
+   El Resumen junta, en un número por etapa, lo que pide atención hoy. */
 
 const VACIO = { materiales: [], movimientos: [], predicciones: [], recomendaciones: [], alertas: [], lectores: [], agentes: {} };
+
+const PESTANAS = [
+  ["resumen", "Resumen"], ["recepcion", "Recepción"], ["bodega", "Bodega"], ["salidas", "Salidas"],
+  ["compras", "Compras"], ["control", "Control"], ["integracion", "Integración"],
+];
+const pestanaInicial = () => {
+  try { const p = localStorage.getItem("stok-pestana"); if (PESTANAS.some(([k]) => k === p)) return p; } catch { /* sin storage */ }
+  return "resumen";
+};
 const diasTxt = (d) => (d === 0 ? "Quiebra hoy" : d === 1 ? "1 día" : `${d} días`);
 
 const CONEXION = {
@@ -30,7 +45,7 @@ const CONEXION = {
 
 export default function Panel(props) {
   const { sesion, salir, datos, obra, obras, cambiarObra, conexion, traer, llamarAgente, guardarMinimo, resolverCompra,
-    vistas, setVistas, aviso, tema, cambiarTema } = props;
+    vistas, setVistas, aviso, tema, cambiarTema, demo } = props;
   const w = useAncho();
   const movil = w < 760, tablet = w < 1200;
   /* La cabecera completa necesita ~1000 px; bajo eso va la compacta de dos filas. */
@@ -40,8 +55,12 @@ export default function Panel(props) {
   const [fEstado, setFEstado] = useState("todos");
   const [verAjustes, setVerAjustes] = useState(false);
   const [selector, setSelector] = useState(false);
-  const { abiertas, alternar } = useSecciones();
-  const sec = (id) => ({ id, movil, abierta: !!abiertas[id], alternar: () => alternar(id) });
+  const [pestana, setPestana] = useState(pestanaInicial);
+  const irA = (p) => {
+    setPestana(p);
+    try { localStorage.setItem("stok-pestana", p); } catch { /* sin storage */ }
+    window.scrollTo({ top: 0 });
+  };
 
   const cargando = !datos && (conexion.estado === "cargando" || conexion.estado === "cambiando");
   const offline = conexion.estado === "sin_conexion";
@@ -63,6 +82,28 @@ export default function Panel(props) {
   const sinTag = d.materiales.filter((m) => !m.tag_registrado).length;
   const lectoresEnLinea = (d.lectores || []).filter((l) => l.activo && l.ultimo_latido && Date.now() - new Date(l.ultimo_latido) < 10 * 60000).length;
   const sinLectura = "sin lectura";
+
+  /* Hoy en la obra: un número por etapa. null = n8n aún no manda esa lista. */
+  const hoy = useMemo(() => {
+    const ocs = d.ordenes_compra, exc = d.excepciones, pres = d.prestamos, kits = d.kits;
+    const llegan = ocs ? ocs.filter((o) => ["agendada", "parcial", "emitida"].includes(o.estado)
+      && [hoyIso(), mananaIso()].includes(String(o.fecha_entrega).slice(0, 10))).length : null;
+    const vencidas = ocs ? ocs.filter((o) => estadoOC(o).id === "vencida").length : null;
+    const abiertas = exc ? exc.filter((e) => e.estado !== "resuelta") : null;
+    const fuera = abiertas ? abiertas.filter((e) => venceExcepcion(e) < Date.now()).length : 0;
+    const noAut = d.movimientos.filter(esNoAutorizada).length;
+    const atrasados = pres ? pres.filter((p) => !p.devuelto && p.devolver_antes && new Date(p.devolver_antes) < Date.now()).length : null;
+    const listos = kits ? kits.filter((k) => k.estado === "armado").length : null;
+    return [
+      { id: "llegan", etiqueta: "Entregas hoy y mañana", valor: llegan, nota: vencidas ? `${vencidas} OC ${vencidas === 1 ? "vencida" : "vencidas"}` : "según las OC del ERP",
+        tono: vencidas ? "crit" : "neutro", pestana: "recepcion" },
+      { id: "excepciones", etiqueta: "Excepciones abiertas", valor: abiertas ? abiertas.length : null,
+        nota: fuera ? `${fuera} fuera de plazo` : "cada una con dueño y plazo", tono: fuera ? "crit" : abiertas?.length ? "warn" : "ok", pestana: "recepcion" },
+      { id: "no_aut", etiqueta: "Salidas no autorizadas", valor: noAut, nota: "cruzaron sin retiro", tono: noAut ? "crit" : "ok", pestana: "salidas" },
+      { id: "prestamos", etiqueta: "Herramientas atrasadas", valor: atrasados, nota: "préstamos sin devolver", tono: atrasados ? "warn" : "ok", pestana: "salidas" },
+      { id: "kits", etiqueta: "Kits listos", valor: listos, nota: "para retirar por el pórtico", tono: "neutro", pestana: "salidas" },
+    ];
+  }, [d]);
 
   const lista = useMemo(() => {
     const q = buscar.trim().toLowerCase();
@@ -102,7 +143,9 @@ export default function Panel(props) {
   return (
     <div>
       {/* ── cabecera ── */}
-      <header style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--p-card)", borderBottom: "1px solid var(--p-line)" }}>
+      {/* En pantallas chicas la cabecera es alta (obra + agentes): se va con el
+          scroll y queda fija solo la barra de pestañas. */}
+      <header style={{ position: cabeceraCompacta ? "static" : "sticky", top: 0, zIndex: 30, background: "var(--p-card)" }}>
         {!cabeceraCompacta ? (
           <div style={{ display: "flex", alignItems: "center", gap: 16, height: 64, padding: "0 24px", maxWidth: 1440, margin: "0 auto" }}>
             <Logo alto={26} />
@@ -170,6 +213,22 @@ export default function Panel(props) {
           </>
         )}
       </header>
+      {/* Pestañas: el circuito de la metodología, de izquierda a derecha. */}
+      <nav aria-label="Secciones" style={{ position: "sticky", top: cabeceraCompacta ? 0 : 64, zIndex: 29, background: "var(--p-card)",
+        borderTop: "1px solid var(--p-line)", borderBottom: "1px solid var(--p-line)" }}>
+          <div role="tablist" style={{ display: "flex", gap: 4, overflowX: "auto", padding: cabeceraCompacta ? "0 8px" : "0 16px", maxWidth: 1440, margin: "0 auto" }}>
+            {PESTANAS.map(([k, txt]) => {
+              const on = pestana === k;
+              return (
+                <button key={k} type="button" role="tab" aria-selected={on} className="plano" onClick={() => irA(k)}
+                  style={{ flex: "none", height: 44, padding: "0 12px", borderRadius: 0, font: `600 ${movil ? 14 : 15}px var(--font-body)`,
+                    color: on ? "var(--p-ink)" : "var(--p-ink2)", borderBottom: `3px solid ${on ? "var(--stok-signal)" : "transparent"}` }}>
+                  {txt}
+                </button>
+              );
+            })}
+          </div>
+      </nav>
 
       <main style={{ display: "flex", flexDirection: "column", gap: movil ? 16 : 20, padding: movil ? "16px 12px 96px" : "24px 24px 48px", maxWidth: 1440, margin: "0 auto" }}>
         {/* ── aviso de estado: sin n8n o sin conexión ── */}
@@ -187,6 +246,7 @@ export default function Panel(props) {
             accion={admin ? "Configurar n8n" : null} onAccion={abrirAjustes} />
         )}
 
+        {pestana === "resumen" && (<>
         {/* ── portada: movimientos capturados ── */}
         <Captura d={d} cargando={cargando} movil={movil} />
 
@@ -225,40 +285,76 @@ export default function Panel(props) {
           </div>
         </section>
 
-        {/* ── el detalle: secciones desplegables, cerradas al entrar ── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: movil ? 12 : 16 }}>
-          <Plegable titulo="Movimientos" {...sec("movimientos")}
-            resumen={sinCifras ? sinLectura : `${d.movimientos.length} lecturas recientes`}>
-            <Movimientos movimientos={d.movimientos} cargando={cargando} />
-          </Plegable>
-          <Plegable titulo="Compras por decidir" {...sec("compras")}
-            resumen={sinCifras ? sinLectura : pendientes.length
-              ? <strong style={{ color: "var(--p-signal)" }}>{pendientes.length} pendientes · {clp(monto)}</strong> : "sin pendientes"}>
-            <Compras recomendaciones={d.recomendaciones} cargando={cargando} movil={movil} resolverCompra={resolverCompra} />
-          </Plegable>
-          <Plegable titulo="Bodega" sinRelleno {...sec("bodega")}
-            resumen={sinCifras ? sinLectura : `${d.materiales.length} materiales · ${conteo.critico} bajo el mínimo${sinTag ? ` · ${sinTag} sin tag` : ""}`}>
-            <Bodega {...{ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso }} />
-          </Plegable>
-          <Plegable titulo="Proyección de quiebres" {...sec("proyeccion")}
-            resumen={sinCifras ? sinLectura : `${quiebre7} quiebran en 7 días · ${d.predicciones.length} proyecciones`}>
-            <Proyeccion predicciones={d.predicciones} cargando={cargando} />
-          </Plegable>
-          <Plegable titulo="Gráficos" {...sec("graficos")} resumen="stock por estado, compras por prioridad, lecturas por hora y quiebres">
-            {cargando ? <div className="esqueleto" style={{ height: 320 }} /> : <Graficos d={d} movil={movil} />}
-          </Plegable>
-          <Plegable titulo="Lectores en obra" {...sec("lectores")}
-            resumen={sinCifras ? sinLectura : `${lectoresEnLinea} de ${(d.lectores || []).length} en línea`}>
-            <Lectores lectores={d.lectores || []} cargando={cargando} />
-          </Plegable>
-          <Plegable titulo="Alertas enviadas" {...sec("alertas")}
-            resumen={sinCifras ? sinLectura : `${d.alertas.filter((a) => a.del_dia).length} hoy · ${d.alertas.length} recientes`}>
-            <Alertas alertas={d.alertas} cargando={cargando} />
-          </Plegable>
-          <p style={{ margin: 0, font: "400 14px/1.55 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>
-            La planilla de la obra manda. STOK la lee cada 60 segundos, proyecta contra la programación y avisa cuando corresponde. Nadie cuenta a mano.
-          </p>
+        {/* ── hoy en la obra: un número por etapa del circuito, cada uno lleva a su pestaña ── */}
+        <section aria-label="Hoy en la obra" style={{ display: "grid", gridTemplateColumns: movil ? "repeat(2,minmax(0,1fr))" : "repeat(5,minmax(0,1fr))", gap: 12 }}>
+          {hoy.map((h) => (
+            <Metrica key={h.id} etiqueta={h.etiqueta} valor={sinCifras || h.valor === null ? "—" : h.valor} tono={sinCifras || h.valor === null ? "neutro" : h.tono}
+              nota={h.valor === null && !sinCifras ? "sin datos de n8n" : h.nota} onClick={() => irA(h.pestana)} />
+          ))}
+        </section>
+
+        <NoAutorizadas movimientos={d.movimientos} cargando={cargando} movil={movil} />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Ceja>KPIs de la metodología</Ceja>
+          <KPIs d={d} cargando={cargando} movil={movil} compacto />
         </div>
+        </>)}
+
+        {pestana === "recepcion" && <Recepcion d={d} cargando={cargando} movil={movil} />}
+
+        {pestana === "bodega" && (<>
+          <Niveles materiales={d.materiales} lotes={d.lotes} movil={movil} />
+          <Bloque titulo="Bodega" movil={movil} sinRelleno
+            bajada={sinCifras ? sinLectura : `${d.materiales.length} materiales · ${conteo.critico} bajo el mínimo${sinTag ? ` · ${sinTag} sin tag` : ""} · se controla por zona, no por estante`}>
+            <Bodega {...{ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstado, cargando, movil, tablet, guardarMinimo, aviso }} />
+          </Bloque>
+          <Lotes lotes={d.lotes} cargando={cargando} movil={movil} />
+        </>)}
+
+        {pestana === "salidas" && (<>
+          <NoAutorizadas movimientos={d.movimientos} cargando={cargando} movil={movil} />
+          <Kits kits={d.kits} cargando={cargando} movil={movil} />
+          <Prestamos prestamos={d.prestamos} cargando={cargando} movil={movil} />
+          <Bloque titulo="Movimientos" movil={movil}
+            bajada={sinCifras ? sinLectura : `${d.movimientos.length} lecturas recientes · cada una con su fuente, su partida y su responsable`}>
+            <Movimientos movimientos={d.movimientos} cargando={cargando} />
+          </Bloque>
+        </>)}
+
+        {pestana === "compras" && (<>
+          <Bloque titulo="Compras por decidir" movil={movil}
+            bajada={sinCifras ? sinLectura : pendientes.length ? `${pendientes.length} ${pendientes.length === 1 ? "pendiente" : "pendientes"} · ${clp(monto)}` : "sin pendientes"}>
+            <Compras recomendaciones={d.recomendaciones} cargando={cargando} movil={movil} resolverCompra={resolverCompra} />
+          </Bloque>
+          <Bloque titulo="Proyección de quiebres" movil={movil}
+            bajada={sinCifras ? sinLectura : `${quiebre7} quiebran en 7 días · ${d.predicciones.length} proyecciones`}>
+            <Proyeccion predicciones={d.predicciones} cargando={cargando} />
+          </Bloque>
+          {cargando ? <div className="esqueleto" style={{ height: 320 }} /> : <Graficos d={d} movil={movil} />}
+        </>)}
+
+        {pestana === "control" && (<>
+          <KPIs d={d} cargando={cargando} movil={movil} />
+          <Escalera d={d} movil={movil} />
+          <ConteoCiclico conteos={d.conteos} cargando={cargando} movil={movil} />
+          <Merma partidas={d.consumo_partidas} movil={movil} />
+          <Bloque titulo="Lectores en obra" movil={movil}
+            bajada={sinCifras ? sinLectura : `${lectoresEnLinea} de ${(d.lectores || []).length} en línea`}>
+            <Lectores lectores={d.lectores || []} cargando={cargando} />
+          </Bloque>
+          <Bloque titulo="Alertas enviadas" movil={movil}
+            bajada={sinCifras ? sinLectura : `${d.alertas.filter((a) => a.del_dia).length} hoy · ${d.alertas.length} recientes`}>
+            <Alertas alertas={d.alertas} cargando={cargando} />
+          </Bloque>
+          <Reglas movil={movil} />
+        </>)}
+
+        {pestana === "integracion" && <Integracion d={d} obra={obra} cargando={cargando} movil={movil} aviso={aviso} />}
+
+        <p style={{ margin: 0, font: "400 14px/1.55 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>
+          {demo ? "Modo demostración: datos ficticios, nada se guarda. " : ""}El dato nace digital: la persona confirma, no registra. STOK lee la obra cada 60 segundos, proyecta contra la programación y avisa cuando corresponde.
+        </p>
       </main>
 
       {verAjustes && (
@@ -468,7 +564,7 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ font: "600 16px/1.25 var(--font-body)" }}>{m.nombre}</span>{!m.tag_registrado && <SinTag />}
                   </div>
-                  <div style={{ font: "400 12px/1.4 var(--font-mono)", color: "var(--p-ink2)" }}>{m.material_id} · {m.proveedor || m.categoria}</div>
+                  <div style={{ font: "400 12px/1.4 var(--font-mono)", color: "var(--p-ink2)" }}>{m.material_id} · {m.proveedor || m.categoria}{m.nivel ? ` · ${m.nivel}` : ""}{m.zona ? ` · ${m.zona}` : ""}</div>
                 </div>
                 <Chip tono={e.tono}>{e.txt}</Chip>
               </div>
@@ -519,7 +615,7 @@ function Bodega({ d, lista, preds, conteo, buscar, setBuscar, fEstado, setFEstad
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ font: "600 16px/1.25 var(--font-body)" }}>{m.nombre}</span>{!m.tag_registrado && <SinTag />}
                       </div>
-                      <div style={{ font: "400 12px/1.4 var(--font-mono)", color: "var(--p-ink2)", marginTop: 2 }}>{m.material_id} · {m.categoria}</div>
+                      <div style={{ font: "400 12px/1.4 var(--font-mono)", color: "var(--p-ink2)", marginTop: 2 }}>{m.material_id} · {m.categoria}{m.nivel ? ` · ${m.nivel}` : ""}{m.zona ? ` · ${m.zona}` : ""}</div>
                     </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <span style={{ font: "800 22px/1 var(--font-display)", color: stockColor }}>{cant(m.stock)}</span>
@@ -657,8 +753,13 @@ function Movimientos({ movimientos, cargando }) {
                   <span style={{ font: "600 16px var(--font-mono)", color: entra ? "var(--p-ok)" : "var(--p-ink)", textAlign: "right" }}>{entra ? "+" : "−"}{cant(Math.abs(delta))}</span>
                   <span style={{ minWidth: 0 }}>
                     <span style={{ display: "block", font: "600 14px/1.3 var(--font-body)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mv.nombre}</span>
-                    <span style={{ display: "block", font: "400 12px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>
-                      {mv.lector || "Lector RFID"} · {mv.direccion === "entrada" ? "entrada" : "salida"} · queda {cant(mv.stock)}
+                    <span style={{ display: "block", font: "400 12px/1.35 var(--font-body)", color: esNoAutorizada(mv) ? "var(--p-crit)" : "var(--p-ink2)" }}>
+                      {[
+                        mv.fuente ? FUENTES[fuenteDe(mv)] || mv.fuente : mv.lector || "Lector RFID",
+                        String(mv.tipo || "").toUpperCase() === "DEVOLUCION" ? "devolución" : mv.direccion === "entrada" ? "entrada" : "salida",
+                        mv.partida, mv.responsable,
+                        esNoAutorizada(mv) ? "sin autorización" : `queda ${cant(mv.stock)}`,
+                      ].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                   <span style={{ font: "400 12px var(--font-mono)", color: "var(--p-ink2)" }}>{hora(mv.ts)}</span>

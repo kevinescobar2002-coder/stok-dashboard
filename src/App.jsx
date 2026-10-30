@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { supabase } from "./supabase";
+import { FALTA_CONFIG, supabase } from "./supabase";
+import { DATOS_DEMO, OBRA_DEMO, SESION_DEMO } from "./demo";
 import {
   cargarObras, leerObraActiva, fijarObraActiva, guardarObra, rotarCodigo, salirDeObra,
 } from "./obras";
@@ -25,7 +26,12 @@ import "./estilos.css";
      POST /webhook/stok/agente/accion             Agente 3 (correo + push)
      POST /webhook/stok/inventario                guarda mínimos
      POST /webhook/stok/recomendacion             aprueba / descarta compras
+
+   Con ?demo en la URL no se habla con nadie: se cargan datos ficticios
+   (demo.js) y cada acción cambia solo la pantalla.
    ============================================================ */
+
+const DEMO = new URLSearchParams(window.location.search).has("demo");
 
 /* El tema se recuerda por navegador; la primera vez sigue al sistema. */
 const temaInicial = () => {
@@ -87,6 +93,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (DEMO) {
+      setSesion(SESION_DEMO); setObras([OBRA_DEMO]); setObraId(OBRA_DEMO.id);
+      setDatos(DATOS_DEMO); setConexion({ estado: "en_linea", hora: ahora() });
+      setCargando(false);
+      return;
+    }
+    if (FALTA_CONFIG) { setCargando(false); return; }
     const entrar = async (u) => {
       setSesion({ id: u.id, email: u.email, nombre: u.user_metadata?.nombre || u.email });
       await refrescarObras(u.id);
@@ -106,7 +119,7 @@ export default function App() {
   }, [refrescarObras]);
 
   const cambiarObra = useCallback(async (id) => {
-    if (!sesion || id === obraId) return;
+    if (DEMO || !sesion || id === obraId) return;
     setObraId(id);
     setDatos(null);                 // nunca mostrar datos de la obra anterior
     setVistas([]);
@@ -118,6 +131,10 @@ export default function App() {
   const url = (ruta) => (obraRef.current?.base || "").replace(/\/+$/, "") + ruta;
 
   const traer = useCallback(async (avisar = false) => {
+    if (DEMO) {
+      if (avisar) aviso("Modo demostración", "Los datos son ficticios: no se leen de n8n.", "info");
+      return;
+    }
     const o = obraRef.current;
     if (!o) return;
     const pedida = o.id;
@@ -163,6 +180,7 @@ export default function App() {
   const llamarAgente = async (cual) => {
     const o = obraRef.current;
     const nombre = cual === "prediccion" ? "Predicción" : "Acción";
+    if (DEMO) return aviso(`Agente de ${nombre}`, "En la demostración los agentes no se ejecutan.", "info");
     if (sinN8n()) return;
     aviso(`Agente de ${nombre} trabajando…`, "", "info");
     try {
@@ -184,6 +202,10 @@ export default function App() {
 
   const guardarMinimo = async (material_id, campo, valor) => {
     const previo = (datos?.materiales || []).find((x) => x.material_id === material_id);
+    if (previo && DEMO) {
+      setDatos((d) => ({ ...d, materiales: d.materiales.map((m) => (m.material_id === material_id ? { ...m, [campo]: num(valor) } : m)) }));
+      return aviso("Mínimo actualizado", `${previo.nombre} · mínimo ${num(valor)}. Solo en esta demostración.`);
+    }
     if (!previo || sinN8n()) return;
     setDatos((d) => ({ ...d, materiales: d.materiales.map((m) => (m.material_id === material_id ? { ...m, [campo]: num(valor) } : m)) }));
     const o = obraRef.current;
@@ -202,6 +224,10 @@ export default function App() {
   };
 
   const resolverCompra = async (rec, estado) => {
+    if (DEMO) {
+      setDatos((d) => ({ ...d, recomendaciones: d.recomendaciones.map((r) => (r.rec_id === rec.rec_id ? { ...r, estado } : r)) }));
+      return aviso(estado === "aprobada" ? "Compra aprobada" : "Recomendación descartada", "Solo en esta demostración.", "info");
+    }
     /* Sin conexión no se aprueba: la compra quedaría solo en esta pantalla. */
     if (estado === "aprobada" && conexionRef.current.estado === "sin_conexion")
       return aviso("No se puede aprobar sin conexión", "Espera a que vuelva la conexión con n8n.", "alert");
@@ -227,12 +253,13 @@ export default function App() {
   /* Ajustes de la obra: los guarda un botón, no cada tecla. La configuración
      es compartida por todo el equipo, así que no conviene ir escribiéndola sola. */
   const guardarAjustes = async (borrador) => {
-    await guardarObra(borrador);
+    if (!DEMO) await guardarObra(borrador);
     setObras((lista) => (lista || []).map((o) => (o.id === borrador.id ? { ...o, ...borrador } : o)));
     aviso("Ajustes guardados", `${borrador.nombre} · ${borrador.obraId}`);
   };
 
   const nuevoCodigo = async () => {
+    if (DEMO) throw new Error("En la demostración el código no cambia.");
     const c = await rotarCodigo(obraRef.current.id);
     setObras((lista) => (lista || []).map((o) => (o.id === obraRef.current.id ? { ...o, codigo: c } : o)));
     aviso(`Código nuevo: ${c}`, "El anterior ya no sirve para entrar.", "info");
@@ -240,6 +267,7 @@ export default function App() {
   };
 
   const dejarObra = async () => {
+    if (DEMO) throw new Error("En la demostración no se puede salir de la obra.");
     const { id, nombre } = obraRef.current;
     await salirDeObra(id, sesion.id);
     setDatos(null);
@@ -251,12 +279,17 @@ export default function App() {
   };
 
   const salir = async () => {
+    if (DEMO || FALTA_CONFIG) { window.location.href = window.location.pathname; return; }
     await supabase.auth.signOut();
     setSesion(null); setObras(null); setObraId(null); setDatos(null);
   };
 
   const contenido = () => {
     if (cargando) return <Cargando texto="Abriendo bodega…" />;
+    if (FALTA_CONFIG && !DEMO) return (
+      <Aviso titulo="Falta conectar Supabase" texto={FALTA_CONFIG}
+        accion="Ver la demostración" onAccion={() => { window.location.search = "?demo"; }} salir={salir} />
+    );
     if (!sesion) return <Acceso aviso={aviso} />;
     if (fallaObras) return (
       <Aviso titulo="No pudimos leer tus obras"
@@ -271,7 +304,7 @@ export default function App() {
     return (
       <Panel {...{ sesion, salir, datos, obra, obras, cambiarObra, conexion, aviso, traer,
         llamarAgente, guardarMinimo, resolverCompra, vistas, setVistas,
-        guardarAjustes, nuevoCodigo, dejarObra, tema,
+        guardarAjustes, nuevoCodigo, dejarObra, tema, demo: DEMO,
         cambiarTema: () => setTema((t) => (t === "oscuro" ? "claro" : "oscuro")),
         alEntrarAObra: (nueva) => refrescarObras(sesion.id, nueva.id) }} />
     );

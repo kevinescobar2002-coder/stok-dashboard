@@ -126,6 +126,53 @@ export const Vacio = ({ titulo, texto, icono, centrado }) => (
   </div>
 );
 
+/* ---------- bloque de pantalla: título, bajada y contenido ----------
+   Las pestañas de la metodología se arman con estos bloques; el detalle
+   que sobra queda en una tabla o lista dentro, nunca en otro bloque. */
+export function Bloque({ titulo, bajada, accion, movil, sinRelleno, children, id }) {
+  return (
+    <section id={id} aria-label={titulo} className="tarjeta" style={{ scrollMarginTop: 120 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 16px", padding: movil ? "16px 16px 12px" : "18px 20px 14px" }}>
+        <div style={{ flex: 1, minWidth: 220, display: "flex", flexDirection: "column", gap: 6 }}>
+          <Titulo tam={18}>{titulo}</Titulo>
+          {bajada && <span style={{ font: "400 14px/1.4 var(--font-body)", color: "var(--p-ink2)", textWrap: "pretty" }}>{bajada}</span>}
+        </div>
+        {accion}
+      </div>
+      <div style={sinRelleno ? undefined : { padding: movil ? "0 16px 16px" : "0 20px 20px" }}>{children}</div>
+    </section>
+  );
+}
+
+/* Cifra chica con etiqueta: la usan el resumen y los KPIs. */
+export const Metrica = ({ etiqueta, valor, nota, tono, onClick }) => {
+  const t = tono ? TONO[tono] : null;
+  const Comp = onClick ? "button" : "div";
+  return (
+    <Comp type={onClick ? "button" : undefined} onClick={onClick} className={onClick ? "kpi tarjeta" : "tarjeta"}
+      style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, padding: "14px 16px", minWidth: 0, textAlign: "left",
+        borderLeft: `4px solid ${t ? t.dot : "var(--p-line)"}`, font: "inherit", color: "var(--p-ink)" }}>
+      <span style={{ font: "400 14px/1.25 var(--font-body)", color: "var(--p-ink2)" }}>{etiqueta}</span>
+      <span style={{ font: "800 28px/1 var(--font-display)", color: t && tono !== "ok" && tono !== "neutro" ? t.fg : "var(--p-ink)" }}>{valor}</span>
+      {nota && <span style={{ font: "400 12px/1.35 var(--font-body)", color: "var(--p-ink2)" }}>{nota}</span>}
+    </Comp>
+  );
+};
+
+/* Riel de avance 0–1 (recepción de una OC, saldo de un lote). */
+export const Avance = ({ pct, color = "var(--p-chart)", alto = 6, etiqueta }) => (
+  <div role="progressbar" aria-label={etiqueta} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct * 100)}
+    style={{ position: "relative", height: alto, background: "var(--p-track)", borderRadius: 1, overflow: "hidden" }}>
+    <div style={{ position: "absolute", inset: 0, width: `${Math.max(0, Math.min(1, pct)) * 100}%`, background: color, borderRadius: 1 }} />
+  </div>
+);
+
+/* Fecha y hora corta para listas: "29 oct · 14:05". */
+export const fechaHora = (iso) => {
+  const d = new Date(iso);
+  return isNaN(d) ? "—" : `${d.toLocaleDateString("es-CL", { day: "numeric", month: "short" })} · ${hora(iso)}`;
+};
+
 /* ---------- portada: la cifra grande de la sala de control ----------
    Lo primero que se ve es cuánto está capturando la obra. El total viene de
    n8n (resumen_movimientos, flujo v4.1); con un flujo anterior se cuenta la
